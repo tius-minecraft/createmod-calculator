@@ -1,0 +1,261 @@
+<main class="workbench planner">
+  <div class="tool-heading">
+    <div>
+      <h1>Factory planner</h1>
+      <p>Work back from your production targets to recipes, machines and raw materials.</p>
+    </div>
+    <button type="button" class="tool-button" (click)="exportCsv()" [disabled]="!plan || !settings.goals.length">Download CSV</button>
+  </div>
+
+  @if (error) {
+    <p class="tool-notice" role="alert">{{ error }} <button type="button" class="tool-button" (click)="load()">Retry</button></p>
+  } @else if (!catalog) {
+    <p class="tool-notice" role="status">Loading recipe catalog…</p>
+  } @else {
+    <section class="tool-panel">
+      <div class="section-heading">
+        <h2>Production targets</h2>
+        <button type="button" class="tool-button" (click)="showSettings = !showSettings" [attr.aria-expanded]="showSettings">Machine settings</button>
+      </div>
+      @if (showSettings) {
+        <div class="tool-fields compact-fields">
+          <label>Machine RPM
+            <input type="number" min="0" max="256" [ngModel]="settings.rpm" (ngModelChange)="setMachineSetting('rpm', $event)">
+          </label>
+          <label>Belt RPM at deployers
+            <input type="number" min="0" max="256" [ngModel]="settings.beltRpm" (ngModelChange)="setMachineSetting('beltRpm', $event)">
+          </label>
+          <label>Stack size for batch machines
+            <input type="number" min="1" max="64" [ngModel]="settings.batch" (ngModelChange)="setMachineSetting('batch', $event)">
+          </label>
+        </div>
+      }
+      <div class="goal-list">
+        @for (goal of settings.goals; track goal.item) {
+          <div class="goal">
+            <label [for]="'goal-' + goal.item">{{ itemName(goal.item) }}</label>
+            <div class="goal-rate">
+              <input [id]="'goal-' + goal.item" type="number" min="0" max="1000000" [ngModel]="goal.rate" (ngModelChange)="setRate(goal, $event)">
+              <span>{{ unit(goal.item) }}/min</span>
+            </div>
+            <button type="button" class="tool-button icon-button" (click)="removeGoal(goal.item)" [attr.aria-label]="'Remove ' + itemName(goal.item)">×</button>
+          </div>
+        }
+      </div>
+      <div class="goal-add">
+        <div class="item-search">
+          <label class="visually-hidden" for="add-product">Find a product to add</label>
+          <input id="add-product" type="search" placeholder="Find a product to add…" [ngModel]="search"
+            (ngModelChange)="search = $event; finding = true" (focus)="finding = true"
+            (keydown.escape)="finding = false" (keydown.enter)="searchResults[0] && addGoal(searchResults[0])">
+          @if (finding && search.trim()) {
+            <div class="search-results">
+              @for (item of searchResults; track item) {
+                <button type="button" (click)="addGoal(item)">{{ itemName(item) }} <small>{{ item }}</small></button>
+              } @empty {
+                <p>No matching products.</p>
+              }
+            </div>
+          }
+        </div>
+        <div class="examples" aria-label="Example plans">
+          @for (example of examples; track example.item) {
+            <button type="button" class="tool-button example" (click)="useExample(example)">{{ itemName(example.item) }}</button>
+          }
+        </div>
+      </div>
+    </section>
+
+    @if (plan; as result) {
+      @if (settings.goals.length) {
+        <div class="tool-metrics">
+          <div><span>Production blocks</span><strong>{{ result.blocks | number }}</strong></div>
+          <div><span>Installed kinetic load</span><strong>{{ result.stress | number }} <small>SU</small></strong></div>
+          <div><span>Supplied materials</span><strong>{{ result.external.length | number }}</strong></div>
+          <div [class.metric-alert]="result.capacity < 1"><span>Target capacity</span><strong>{{ result.capacity | percent: '1.0-1' }}</strong></div>
+        </div>
+
+        @if (result.capacity < 1) {
+          <div class="tool-notice" role="status">
+            <strong>Capacity shortfall.</strong>
+            @for (section of result.stages; track section.item) {
+              @if (section.capacity < 1) {
+                <button class="link-button" type="button" (click)="view(section.item, true)">{{ itemName(section.item) }} · {{ section.capacity | percent: '1.0-1' }}</button>
+              }
+            }
+          </div>
+        }
+        @if (result.cycles.length) {
+          <p class="tool-notice" role="status">Recipe loop detected. Supply
+            @for (item of result.cycles; track item; let last = $last) {
+              {{ itemName(item) }}{{ last ? '' : ', ' }}
+            }
+            externally or choose another recipe.
+          </p>
+        }
+        <section class="tool-panel">
+          <div class="section-heading">
+            <div>
+              <h2>Material flow</h2>
+              <p>Select a material to configure its recipe or machine count.</p>
+            </div>
+            <div class="flow-controls" aria-label="Scroll material flow">
+              <button type="button" class="tool-button icon-button" aria-label="Previous stages" (click)="shiftFlow(flow, -1)">←</button>
+              <button type="button" class="tool-button icon-button" aria-label="Next stages" (click)="shiftFlow(flow, 1)">→</button>
+            </div>
+          </div>
+          <div class="flow" #flow tabindex="0" aria-label="Production flow, from supplies to outputs">
+            @if (result.external.length) {
+              <div class="flow-lane">
+                <h3>External supplies</h3>
+                @for (material of result.external; track material.item) {
+                  <button type="button" class="flow-card supply-card" [class.active-card]="selectedStage === material.item"
+                    (click)="view(material.item)"><strong>{{ itemName(material.item) }}</strong>
+                    <span>{{ material.rate | number: '1.0-2' }} {{ unit(material.item) }}/min</span></button>
+                }
+              </div>
+            }
+            @for (lane of lanes; track lane[0]) {
+              <div class="flow-lane">
+                <h3>Stage {{ lane[0] }}</h3>
+                @for (stage of lane[1]; track stage.item) {
+                  <article class="flow-card" [class.active-card]="selectedStage === stage.item">
+                    <button class="flow-main" type="button" (click)="view(stage.item)" [attr.aria-expanded]="selectedStage === stage.item">
+                      <strong>{{ itemName(stage.item) }}</strong>
+                      <span>{{ stage.rate | number: '1.0-2' }} {{ unit(stage.item) }}/min</span>
+                      <small>{{ machines[stage.recipe.machine].label }}</small>
+                    </button>
+                    @if (stage.input.length) {
+                      <ul class="flow-inputs">
+                        @for (material of stage.input; track material.key) {
+                          <li><button class="link-button" type="button" (click)="view(material.item, true)">← {{ itemName(material.item) }} · {{ material.rate | number: '1.0-2' }} {{ unit(material.item) }}/min</button></li>
+                        }
+                      </ul>
+                    }
+                  </article>
+                }
+              </div>
+            }
+          </div>
+        </section>
+
+        @if (selectedStage) {
+          <section class="tool-panel stage-detail" id="stage-details" aria-label="Production stage details">
+            <div class="section-heading">
+              <div>
+                <h2>{{ itemName(selectedStage) }}</h2>
+                @if (visibleStage; as stage) {
+                  <p>{{ stage.crafts | number: '1.0-2' }} recipe attempts/min · {{ stage.rate | number: '1.0-2' }} {{ unit(stage.item) }}/min expected</p>
+                }
+              </div>
+              <button type="button" class="tool-button" (click)="selectedStage = ''">Close</button>
+            </div>
+            <div class="tool-fields">
+              <label>Recipe
+                <select [ngModel]="recipeSelection(selectedStage)" (ngModelChange)="setRecipe(selectedStage, $event)">
+                  <option value="">External supply</option>
+                  @for (recipe of alternatives(selectedStage); track recipe.id) {
+                    <option [value]="recipe.id">{{ recipeName(recipe) }}</option>
+                  }
+                </select>
+              </label>
+              <button type="button" class="tool-button" (click)="setRecipe(selectedStage, 'auto')">Use default</button>
+              @if (visibleStage; as stage) {
+                @for (material of stage.input; track material.key) {
+                  @if (material.ingredient.choices.length > 1) {
+                    <label>Ingredient alternative
+                      <select [ngModel]="material.item" (ngModelChange)="setIngredient(material.key, $event)">
+                        @for (item of material.ingredient.choices; track item) {
+                          <option [value]="item">{{ itemName(item) }}</option>
+                        }
+                      </select>
+                    </label>
+                  }
+                }
+              }
+            </div>
+            @if (visibleStage; as stage) {
+              @if (stage.equipment.length) {
+                <div class="table-scroll">
+                  <table>
+                    <thead><tr><th scope="col">Machine</th><th scope="col">Needed</th><th scope="col">Installed</th><th scope="col">Utilization</th><th scope="col">Load</th></tr></thead>
+                    <tbody>
+                      @for (machine of stage.equipment; track machine.machine) {
+                        <tr>
+                          <th scope="row">{{ machines[machine.machine].label }}</th>
+                          <td>{{ machine.needed === Infinity ? 'Stopped' : (machine.needed | number: '1.0-2') }}</td>
+                          <td><input type="number" min="0" max="1000000" placeholder="Auto" [ngModel]="settings.limits[stage.item + '/' + machine.machine] ?? null"
+                            [attr.aria-label]="'Installed ' + machines[machine.machine].label"
+                            (ngModelChange)="setLimit(stage.item + '/' + machine.machine, $event)"> <span>{{ machine.installed }}</span></td>
+                          <td>{{ machine.utilization === Infinity ? '—' : (machine.utilization | percent: '1.0-1') }}</td>
+                          <td>{{ machine.stress | number }} SU</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <p>Manual production or an external crafting station. Budget {{ stage.crafts | number: '1.0-2' }} operations per minute.</p>
+              }
+              @if (stage.recipe.heat) {
+                <p>{{ stage.support }} Blaze Burner(s) · {{ stage.recipe.heat }}. Supply fuel separately.</p>
+              }
+              @if (stage.recipe.tools?.length) {
+                <p>Reusable tooling
+                  @for (tool of stage.recipe.tools; track $index; let last = $last) {
+                    {{ itemName(tool.choices[0]) }}{{ last ? '' : ', ' }}
+                  }
+                </p>
+              }
+            }
+          </section>
+        }
+
+        @if (result.blocks) {
+          <details class="tool-panel equipment-list">
+            <summary>Equipment list</summary>
+            <ul class="materials">
+              @for (entry of equipmentSummary; track entry[0]) {
+                <li><span>{{ entry[0] }}</span><strong>{{ entry[1] | number }}</strong></li>
+              }
+            </ul>
+          </details>
+        }
+
+        <section class="tool-panel">
+          <div class="section-heading">
+            <div>
+              <h2>Power and byproducts</h2>
+              <p>Counts use rated generator output for the installed load.</p>
+            </div>
+            <a class="tool-button" routerLink="/generators">Generator calculator</a>
+          </div>
+          <div class="tool-fields power-fields">
+            <label>Power source
+              <select [(ngModel)]="generator">
+                @for (source of generatorTypes; track source.id) {
+                  <option [value]="source.id">{{ source.label }}</option>
+                }
+              </select>
+            </label>
+            <span class="generator-count">{{ generatorCount | number }} required</span>
+            @if (result.byproducts.length) {
+              <button type="button" class="tool-button" (click)="showProducts = !showProducts" [attr.aria-expanded]="showProducts">Byproducts ({{ result.byproducts.length }})</button>
+            }
+          </div>
+          @if (showProducts) {
+            <ul class="materials">
+              @for (material of result.byproducts; track material.item) {
+                <li><span>{{ itemName(material.item) }}</span><strong>{{ material.rate | number: '1.0-2' }} {{ unit(material.item) }}/min</strong></li>
+              }
+            </ul>
+          }
+        </section>
+
+        <p class="tool-note">Rates assume 20 TPS, uninterrupted supplies and open outputs. Random drops use expected yield. Byproducts are reported separately from required inputs. Stack size, belts, burner fuel and layout can limit actual production.</p>
+      } @else {
+        <p class="tool-notice">Add a production target to build a plan.</p>
+      }
+    }
+  }
+</main>

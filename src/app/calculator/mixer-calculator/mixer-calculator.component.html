@@ -1,5 +1,7 @@
 <app-input-side>
   <app-number [min]="0" id="rpm" [(value)]="val_rpm" (userChange)="calculateFromRpm()">RPM</app-number>
+  <app-number [min]="0" id="duration" [(value)]="in_duration" (userChange)="calculateFromRpm()" [unit]="'ticks'" [hint]="'Use 0 for the default recipe duration.'">Recipe duration</app-number>
+  <app-enum [values]="mixingModes" id="mixingMode" [(value)]="in_mode" (userChange)="calculateFromRpm()">Batch mode</app-enum>
   @if(val_rpm! < 30) {
     <app-warning>Remember that the Mechanical Mixer will only work if <b>RPM ≥ 30</b>!</app-warning>
   }

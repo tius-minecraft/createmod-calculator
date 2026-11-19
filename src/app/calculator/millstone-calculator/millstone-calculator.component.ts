@@ -33,10 +33,10 @@ export class MillstoneCalculatorComponent {
   }
 
   get recipeInputHint(): string {
-    return "Different recipes have different durations. If you can't see your input, select <all other recipes> or <custom>";
+    return "Presets are from the Create 6.0.10 recipe data. Choose custom to enter a datapack recipe duration.";
   }
   get recipeDurationHint(): string {
-    return "Click the \"Millstone\" button above. There you will find a table with all available recipes and their duration";
+    return "Enter the processing_time from the recipe JSON.";
   }
 
   calculateFromRpm() {

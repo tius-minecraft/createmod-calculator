@@ -1,4 +1,4 @@
-import { BeltCalculator } from "../belt-calculator/belt.calculator";
+import { DEFAULT_MAX_RPM, deployerBeltTicks } from "../../create/kinetics";
 import { clamp, decimal } from "../constants";
 
 export abstract class DeployerCalculator {
@@ -13,11 +13,10 @@ export abstract class DeployerCalculator {
 
       let totalFrames = undefined;
       if(options.process === Process.PROCESSING) {
-        let inputDelay = options.inputDelay;
-        if(options.inputDelay === -1)
-          inputDelay = Math.ceil(BeltCalculator.calculateFromRpm(options.beltRpm, 1, 1).time*20);
+        totalFrames = options.inputDelay === -1
+          ? deployerBeltTicks(rpm, options.beltRpm)
+          : framesExpanding + Math.max(framesRetracting, options.inputDelay);
 
-        totalFrames = framesExpanding + framesRetracting + Math.max(0, inputDelay - framesRetracting);
       }
       else if(options.process === Process.OTHER) {
         if(options.onContraption) {
@@ -58,7 +57,7 @@ export abstract class DeployerCalculator {
   }
 
   public static calculateFromTime(time: number, options: Options): Result {
-    let resultRpm = this.searchForRpm(0, 1024, time, options);
+    let resultRpm = this.searchForRpm(0, DEFAULT_MAX_RPM, time, options);
     let result = this.calculateFromRpm(resultRpm, options);
     return result;
   }

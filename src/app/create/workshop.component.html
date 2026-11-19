@@ -1,0 +1,181 @@
+<main class="workbench workshop">
+  @switch (tool) {
+    @case ('generators') {
+      <div class="tool-heading"><div><h1>Rotation &amp; stress</h1><p>Generator output in Create 6.0.10 under default stress settings.</p></div><a class="tool-button" routerLink="/planner">Factory planner</a></div>
+      <section class="tool-panel">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th scope="col">Generator</th><th scope="col">Output RPM</th><th scope="col">Capacity (SU)</th></tr></thead>
+            <tbody>
+              @for (generator of generators; track generator.id) {
+                <tr>
+                  <th scope="row">{{ generator.label }}</th>
+                  <td>{{ generator.id === 'windmill' ? windmill.rpm : generator.id === 'steam' ? steam.rpm : generator.id === 'creative' ? motorRpm : generator.rpm }}</td>
+                  <td>{{ (generator.id === 'windmill' ? windmill.su : generator.id === 'steam' ? steam.su : generator.id === 'creative' ? motorRpm * 16384 : generator.su) | number: '1.0-1' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="tool-note">Water wheels need flow. The hand crank and copper valve handle provide power while operated. Steam capacity is the total for all attached engines.</p>
+      </section>
+      <div class="tool-panels">
+        <section class="tool-panel">
+          <h2>Windmill</h2>
+          <div class="tool-fields">
+            <label>Sail blocks
+              <input type="number" min="0" [ngModel]="sails" (ngModelChange)="sails = numeric($event, 0, 2048)">
+            </label>
+          </div>
+          <p>Assembly requires at least 8 sails. Each group of 8 adds 1 RPM, up to 16 RPM.</p>
+        </section>
+        <section class="tool-panel">
+          <h2>Creative Motor</h2>
+          <div class="tool-fields">
+            <label>Set RPM
+              <input type="number" min="1" max="256" [ngModel]="motorRpm" (ngModelChange)="motorRpm = numeric($event, 1, 256)">
+            </label>
+          </div>
+        </section>
+      </div>
+      <section class="tool-panel">
+        <h2>Steam boiler</h2>
+        <div class="tool-fields">
+          <label>Tank blocks<input type="number" min="0" max="288" [ngModel]="tanks" (ngModelChange)="tanks = numeric($event, 0, 288)"></label>
+          <label>Active heat levels<input type="number" min="0" max="18" [ngModel]="heat" (ngModelChange)="heat = numeric($event, 0, 18)"></label>
+          <label>Water supply (mB/tick)<input type="number" min="0" [ngModel]="water" (ngModelChange)="water = numeric($event, 0, 1000000)"></label>
+          <label>Steam engines<input type="number" min="1" [ngModel]="engines" (ngModelChange)="engines = numeric($event, 1, 1024)"></label>
+          <label class="checkbox-label"><input type="checkbox" [(ngModel)]="passive"> Passive heat when no active heat is present</label>
+        </div>
+      </section>
+    }
+    @case ('packager') {
+      <div class="tool-heading"><div><h1>Packager</h1><p>Package and item throughput by operating mode.</p></div><a class="tool-button" routerLink="/logistics">Other logistics</a></div>
+      <section class="tool-panel">
+        <div class="tool-fields">
+          <label>Operating mode
+            <select [(ngModel)]="mode">
+              @for (mode of packagerModes; track mode.id) {
+                <option [value]="mode.id">{{ mode.label }}</option>
+              }
+            </select>
+          </label>
+          <label>Occupied slots<input type="number" min="1" max="9" [ngModel]="slots" (ngModelChange)="slots = numeric($event, 1, 9)" [disabled]="bulky"></label>
+          <label>Items per slot<input type="number" min="1" max="64" [ngModel]="stack" (ngModelChange)="stack = numeric($event, 1, 64)" [disabled]="bulky"></label>
+          <label>Server TPS<input type="number" min="1" max="20" [ngModel]="tps" (ngModelChange)="tps = numeric($event, 1, 20)"></label>
+          <label class="checkbox-label"><input type="checkbox" [(ngModel)]="bulky"> Bulky package</label>
+        </div>
+      </section>
+      <div class="tool-metrics">
+        <div><span>Cycle</span><strong>{{ packagerCycle }} <small>ticks</small></strong></div>
+        <div><span>Boxes per minute</span><strong>{{ packageRate | number: '1.0-2' }}</strong></div>
+        <div><span>Items per box</span><strong>{{ packagePayload | number }}</strong></div>
+        <div><span>Items per minute</span><strong>{{ packagePayload * packageRate | number: '1.0-2' }}</strong></div>
+      </div>
+      <p class="tool-note">The tray animation takes 20 ticks. A queued box starts on the following tick. Individual pulses use the 40-tick button cooldown. Held redstone retries on the 11-tick lazy tick. These rates require immediate pickup or available destination storage.</p>
+    }
+    @case ('spout') {
+      <div class="tool-heading"><div><h1>Spout</h1><p>Size filling stations by recipe, fluid supply and target output.</p></div><a class="tool-button" routerLink="/sequence">Sequenced Assembly</a></div>
+      <section class="tool-panel">
+        <div class="tool-fields">
+          <label>Fluid per fill (mB)<input type="number" min="1" max="1000" [ngModel]="fluidAmount" (ngModelChange)="fluidAmount = numeric($event, 1, 1000)"></label>
+          <label>Supply per spout (mB/s)<input type="number" min="0" [ngModel]="supply" (ngModelChange)="supply = numeric($event, 0, 1000000)"></label>
+          <label>Target (items/min)<input type="number" min="0" [ngModel]="requested" (ngModelChange)="requested = numeric($event, 0, 1000000)"></label>
+          <label>Server TPS<input type="number" min="1" max="20" [ngModel]="tps" (ngModelChange)="tps = numeric($event, 1, 20)"></label>
+        </div>
+      </section>
+      <div class="tool-metrics">
+        <div><span>Cycle</span><strong>{{ spoutTicks }} <small>ticks</small></strong></div>
+        <div><span>Items per minute per spout</span><strong>{{ spoutRate | number: '1.0-2' }}</strong></div>
+        <div><span>Spouts required</span><strong>{{ spoutsRequired | number }}</strong></div>
+        <div><span>Target fluid demand</span><strong>{{ requested * fluidAmount | number: '1.0-2' }} <small>mB/min</small></strong></div>
+      </div>
+      <p class="tool-note">Enter 0 for unlimited fluid supply. The spout starts at 20 on its timer and can start the next fill when the timer reaches −1. Belt spacing, tank delivery and output clearance affect throughput.</p>
+    }
+    @case ('sequence') {
+      <div class="tool-heading"><div><h1>Sequenced Assembly</h1><p>Compare processing time, line throughput and weighted recipe yields.</p></div><a class="tool-button" routerLink="/planner">Factory planner</a></div>
+      @if (sequence; as recipe) {
+        <section class="tool-panel">
+          <div class="tool-fields">
+            <label for="assembly-recipe">Recipe
+              <select id="assembly-recipe" [(ngModel)]="selectedSequence">
+                @for (recipe of sequences; track recipe.id) {
+                  <option [value]="recipe.id">{{ itemName(recipe.outputs[0].item) }}</option>
+                }
+              </select>
+            </label>
+            <label>Machine RPM<input type="number" min="0" max="256" [ngModel]="rpm" (ngModelChange)="rpm = numeric($event, 0, 256)"></label>
+            <label>Belt RPM<input type="number" min="0" max="256" [ngModel]="beltRpm" (ngModelChange)="beltRpm = numeric($event, 0, 256)"></label>
+          </div>
+        </section>
+        @if (sequenceResult; as result) {
+          <div class="tool-metrics">
+            <div><span>Success chance</span><strong>{{ result.success | percent: '1.0-2' }}</strong></div>
+            <div><span>Processing time</span><strong>{{ result.serialTicks === Infinity ? 'Stopped' : (result.serialTicks / ticksPerSecond | number: '1.0-2') }} <small>s</small></strong></div>
+            <div><span>Serial output</span><strong>{{ result.serialOutput | number: '1.0-2' }} <small>/min</small></strong></div>
+            <div><span>Pipeline output</span><strong>{{ result.pipelineOutput | number: '1.0-2' }} <small>/min</small></strong></div>
+          </div>
+          <div class="tool-panels">
+            <section class="tool-panel">
+              <h2>One pass · repeat {{ recipe.loops }}×</h2>
+              <ol class="materials">
+                @for (step of result.work; track $index) {
+                  <li><span>{{ machines[step.machine].label }}</span><strong>{{ step.ticks === Infinity ? 'Stopped' : (step.ticks / (recipe.loops || 1) | number) + ' ticks' }}</strong></li>
+                }
+              </ol>
+            </section>
+            <section class="tool-panel">
+              <h2>Inputs per attempt</h2>
+              <ul class="materials">
+                @for (input of recipe.inputs; track $index) {
+                  <li><span>
+                    @for (item of input.choices; track item; let last = $last) {
+                      {{ itemName(item) }}{{ last ? '' : ' / ' }}
+                    }
+                  </span><strong>{{ input.amount }} {{ unit(input.choices[0]) }}</strong></li>
+                }
+              </ul>
+            </section>
+          </div>
+          <section class="tool-panel">
+            <h2>Result pool</h2>
+            <ul class="materials">
+              @for (output of recipe.outputs; track $index) {
+                <li><span>{{ output.amount }} × {{ itemName(output.item) }}</span><strong>{{ output.chance | percent: '1.0-2' }}</strong></li>
+              }
+            </ul>
+          </section>
+          <p class="tool-note">Serial output completes one item at a time. Pipeline output assumes one machine per step and a shared line for every pass. Transport and feed gaps can reduce both rates.</p>
+        }
+      } @else if (error) {
+        <p class="tool-notice" role="alert">Could not load the assembly recipes.</p>
+      } @else {
+        <p class="tool-notice" role="status">Loading assembly recipes…</p>
+      }
+    }
+    @case ('logistics') {
+      <div class="tool-heading"><div><h1>Logistics</h1><p>Compare the rate of common item transfers.</p></div><a class="tool-button" routerLink="/packager">Packager</a></div>
+      <section class="tool-panel">
+        <div class="tool-fields">
+          <label>Items per extracted stack<input type="number" min="1" max="64" [ngModel]="stack" (ngModelChange)="stack = numeric($event, 1, 64)"></label>
+          <label>Funnel timer setting (ticks)<input type="number" min="1" [ngModel]="extractionTimer" (ngModelChange)="extractionTimer = numeric($event, 1, 10000)"></label>
+          <label>Server TPS<input type="number" min="1" max="20" [ngModel]="tps" (ngModelChange)="tps = numeric($event, 1, 20)"></label>
+        </div>
+      </section>
+      <section class="tool-panel">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th scope="col">Transfer</th><th scope="col">Ticks</th><th scope="col">Items/min</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Andesite Funnel · extraction</th><td>{{ funnelCycle }}</td><td>{{ rate(funnelCycle) | number: '1.0-2' }}</td></tr>
+              <tr><th scope="row">Brass Funnel · extraction</th><td>{{ funnelCycle }}</td><td>{{ rate(funnelCycle) * stack | number: '1.0-2' }}</td></tr>
+              <tr><th scope="row">Item Drain · one container</th><td>{{ drainTicks }}</td><td>{{ rate(drainTicks) | number: '1.0-2' }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="tool-note">Funnel extraction waits out the configured cooldown before the next attempt. Item Drain includes the 20-tick emptying animation and travel through the block. These rates assume full inputs and clear outputs.</p>
+      </section>
+    }
+  }
+  <p class="tool-note source-note"><a [href]="source" target="_blank" rel="noopener">Create source · mc1.21.1-6.0.10</a></p>
+</main>

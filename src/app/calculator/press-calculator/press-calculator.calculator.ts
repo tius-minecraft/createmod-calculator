@@ -1,15 +1,13 @@
-import { clamp, decimal, lerp } from "../constants";
+import { decimal } from "../constants";
+import { DEFAULT_MAX_RPM, pressTicks } from "../../create/kinetics";
 
 export var cycle = 240;
 
 export abstract class PressCalculator {
   public static calculateFromRpm(rpm: number): Result {
     if(rpm > 0) {
-      let runningTickSpeed = Math.floor(lerp(1, 60, clamp(rpm/512, 0, 1)));
-      let a = Math.ceil((cycle/2)/runningTickSpeed);
-      let b = Math.ceil((cycle/2 + 1)/runningTickSpeed);
-      let totalFrames: number = a + b + 2; // 2 frames are lost while checking for this.runningTicks>this.cycle and enabling 'running' state;
-      
+      const totalFrames = pressTicks(rpm);
+
       return {
         rpm: rpm,
         time: decimal(totalFrames/20)!,
@@ -26,7 +24,7 @@ export abstract class PressCalculator {
   }
 
   public static calculateFromTime(time: number): Result {
-    let resultRpm = this.searchForRpm(0, 1024, time);
+    let resultRpm = this.searchForRpm(0, DEFAULT_MAX_RPM, time);
     let result = this.calculateFromRpm(resultRpm);
     return result;
   }

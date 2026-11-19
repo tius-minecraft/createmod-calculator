@@ -12,7 +12,16 @@ import { PressCalculatorComponent } from './calculator/press-calculator/press-ca
 import { PumpCalculatorComponent } from './calculator/pump-calculator/pump-calculator.component';
 import { SawCalculatorComponent } from './calculator/saw-calculator/saw-calculator.component';
 
+const workshop = () => import('./create/workshop.component').then(module => module.WorkshopComponent);
+
 export const routes: Routes = [
+  { path: '', pathMatch: 'full', redirectTo: 'planner' },
+  { path: 'planner', loadComponent: () => import('./planner/planner.component').then(module => module.PlannerComponent) },
+  { path: 'generators', loadComponent: workshop, data: { tool: 'generators' } },
+  { path: 'packager', loadComponent: workshop, data: { tool: 'packager' } },
+  { path: 'spout', loadComponent: workshop, data: { tool: 'spout' } },
+  { path: 'sequence', loadComponent: workshop, data: { tool: 'sequence' } },
+  { path: 'logistics', loadComponent: workshop, data: { tool: 'logistics' } },
   {
     path: 'drill',
     component: DrillCalculatorComponent

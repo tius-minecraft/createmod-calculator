@@ -1,48 +1,26 @@
-import { clamp, decimal } from "../constants";
+import { decimal } from '../constants';
+import { DEFAULT_MAX_RPM, mixerTicks, TICKS_PER_SECOND } from '../../create/kinetics';
 
 export abstract class MixerCalculator {
-  public static calculateFromRpm(rpm: number): Result {
-    if(rpm > 0) {
-      let time = (clamp(Math.floor(Math.log2(Math.floor(512 / rpm))) * Math.ceil(1 * 15) + 1, 1, 512)+1) / 20;
-      return {
-        rpm: rpm,
-        time: decimal(time)!,
-        speed: decimal(1/time)!
-      };
-    }
-    else {
-      return {
-        rpm: rpm,
-        time: Number.POSITIVE_INFINITY,
-        speed: 0
-      }
-    }
+  static calculateFromRpm(rpm: number, duration = 0, continuous = true): Result {
+    const time = mixerTicks(rpm, duration, continuous) / TICKS_PER_SECOND;
+    return { rpm, time: decimal(time)!, speed: decimal(1 / time)! };
   }
 
-  public static calculateFromTime(time: number): Result {
-    let resultRpm = this.searchForRpm(0, 1024, time);
-    let result = this.calculateFromRpm(resultRpm);
-    return result;
+  static calculateFromTime(time: number, duration = 0, continuous = true): Result {
+    if (!Number.isFinite(time)) return this.calculateFromRpm(0, duration, continuous);
+    let rpm = 1;
+    while (rpm < DEFAULT_MAX_RPM && this.calculateFromRpm(rpm, duration, continuous).time > time) rpm++;
+    return this.calculateFromRpm(rpm, duration, continuous);
   }
 
-  public static calculateFromSpeed(speed: number): Result {
-    let result = this.calculateFromTime(1/speed);
-    return result;
-  }
-
-  private static searchForRpm(rpm: number, maxRpm: number, targetTime: number): number {
-    let time = this.calculateFromRpm(rpm).time;
-    if(time <= targetTime || rpm >= maxRpm) {
-      return rpm;
-    }
-    else {
-      return this.searchForRpm(rpm+1, maxRpm, targetTime);
-    }
+  static calculateFromSpeed(speed: number, duration = 0, continuous = true): Result {
+    return this.calculateFromTime(1 / speed, duration, continuous);
   }
 }
 
 export interface Result {
-  rpm: number,
-  time: number,
-  speed: number
+  rpm: number;
+  time: number;
+  speed: number;
 }

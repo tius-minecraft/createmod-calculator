@@ -1,19 +1,10 @@
-import { clamp, decimal } from "../constants";
+import { decimal } from "../constants";
+import { DEFAULT_MAX_RPM, crafterTicks } from "../../create/kinetics";
 
 export abstract class CrafterCalculator {
-  private static countDown(ticks: number, speed: number): number {
-    return Math.ceil((ticks+1) / speed);
-  }
-
   public static calculateFromRpm(rpm: number, chainLength: number, inputDelay: number): Result {
     if(rpm > 0) {
-      let countDownSpeed = clamp(rpm, 4, 250);
-      let frames = 0;
-      frames += this.countDown(500, countDownSpeed); // earliest crafter, assembling
-      frames += (chainLength-1)*this.countDown(1000, countDownSpeed); // for all crafter without the last one, exporting
-      frames += (chainLength-1)*this.countDown(Math.max(100, countDownSpeed+1), countDownSpeed); // for all crafter without the first one, assembling
-      frames += this.countDown(2000, countDownSpeed); // the last crafter, crafting
-      frames += inputDelay; // input delay
+      const frames = crafterTicks(rpm, chainLength, inputDelay);
 
       return {
         rpm: rpm,
@@ -31,7 +22,7 @@ export abstract class CrafterCalculator {
   }
 
   public static calculateFromTime(time: number, chainLength: number, inputDelay: number): Result {
-    let resultRpm = this.searchForRpm(0, 1024, time, chainLength, inputDelay);
+    let resultRpm = this.searchForRpm(0, DEFAULT_MAX_RPM, time, chainLength, inputDelay);
     let result = this.calculateFromRpm(resultRpm, chainLength, inputDelay);
     return result;
   }

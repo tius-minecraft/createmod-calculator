@@ -1,12 +1,10 @@
-import { clamp, decimal } from "../constants";
+import { decimal } from "../constants";
+import { DEFAULT_MAX_RPM, sawTicks } from "../../create/kinetics";
 
 export abstract class SawCalculator {
   public static calculateFromRpm(rpm: number, recipeDuration: number): Result {
     if(rpm > 0) {
-      let processingTime = clamp(rpm / 24, 1, 128);
-      let frames = 0;
-      frames += Math.floor((recipeDuration-5)/processingTime + 1);
-      frames += Math.ceil(20/processingTime);
+      const frames = sawTicks(rpm, recipeDuration, 1);
 
       return {
         rpm: rpm,
@@ -24,7 +22,7 @@ export abstract class SawCalculator {
   }
 
   public static calculateFromTime(time: number, recipeDuration: number): Result {
-    let resultRpm = this.searchForRpm(0, 1024, time, recipeDuration);
+    let resultRpm = this.searchForRpm(0, DEFAULT_MAX_RPM, time, recipeDuration);
     let result = this.calculateFromRpm(resultRpm, recipeDuration);
     return result;
   }

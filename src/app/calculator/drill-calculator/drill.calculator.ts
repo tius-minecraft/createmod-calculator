@@ -1,15 +1,11 @@
-import { clamp, decimal } from "../constants";
+import { decimal, OPTIMIZED_GENERATOR } from "../constants";
+import { blockBreakingTicks, DEFAULT_MAX_RPM, optimizedDrillTicks } from "../../create/kinetics";
 
 export abstract class DrillCalculator {
   public static calculateFromRpm(hardness: number, delay: number, rpm: number): Result {
     if(rpm > 0) {
-      let breakSpeed = rpm / 100;
-  
-      let a = Math.ceil(10/clamp(Math.floor(breakSpeed/hardness), 1, 10));
-      let b = Math.floor(hardness/breakSpeed)+1;
-      let totalFrames = (a-1) * b + 1 + 1; //+1 is frame of delay
-  
-      let time = ((totalFrames-Math.min(1, delay)) + delay) / 20;
+      const ticks = delay === OPTIMIZED_GENERATOR ? optimizedDrillTicks(rpm, hardness) : blockBreakingTicks(rpm, hardness, delay);
+      const time = ticks / 20;
       return {
         rpm: rpm,
         time: decimal(time)!,
@@ -26,7 +22,7 @@ export abstract class DrillCalculator {
   }
 
   public static calculateFromTime(hardness: number, delay: number, time: number): Result {
-    let resultRpm = this.searchForRpm(0, 1024, time, hardness, delay);
+    let resultRpm = this.searchForRpm(0, DEFAULT_MAX_RPM, time, hardness, delay);
     let result = this.calculateFromRpm(hardness, delay, resultRpm);
     return result;
   }

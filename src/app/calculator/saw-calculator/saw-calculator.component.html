@@ -5,7 +5,7 @@
     <app-nuenum id="hardness" [label_custom]="'Custom Hardness'" [keys]="hardnessKeys" [values]="hardnessValues" [(value)]="in_hardness" (userChange)="calculateFromRpm()">Hardness</app-nuenum>
   }
   @else {
-    <app-nuenum id="recipe-duration" [unit]="'t'" [label_custom]="'Custom Recipe Duration'" [keys]="recipesKeys" [values]="recipesValues" [(value)]="in_recipeDuration" (userChange)="calculateFromRpm()">Recipe Input</app-nuenum>
+    <app-nuenum id="recipe-duration" presetId="recipe-6.0.10" [unit]="'t'" [min]="0" [max]="10000" [label_custom]="'Custom Recipe Duration'" [keys]="recipesKeys" [values]="recipesValues" [(value)]="in_recipeDuration" (userChange)="calculateFromRpm()">Recipe Input</app-nuenum>
   }
 </app-input-side>
 <app-output-side>

@@ -13,7 +13,7 @@ import { TooltipDirective } from './tooltip';
   styleUrl: './app.component.css'
 })
 export class AppComponent {
-  title = 'createmod-calculator';
+  isWorkshop = false;
   switchTabAnimation: boolean = false;
   private calculatorService = inject(CalculatorService);
   private router = inject(Router);
@@ -21,8 +21,13 @@ export class AppComponent {
   ngOnInit() {
     this.router.events.subscribe((val) => {
       if(val instanceof ActivationStart) {
-        this.calculatorService.setSelectedCalculator(val.snapshot.url[0].path);
-        this.onCalculatorChanged();
+        const id = val.snapshot.url[0]?.path;
+        if (!id) return;
+        this.isWorkshop = !this.calculatorService.getCalculator(id);
+        if (!this.isWorkshop) {
+          this.calculatorService.setSelectedCalculator(id);
+          this.onCalculatorChanged();
+        }
       }
     })
   }

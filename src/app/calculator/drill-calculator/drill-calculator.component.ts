@@ -35,7 +35,7 @@ export class DrillCalculatorComponent {
   get delayValues(): number[] { return Array.from(g_delays.values()); }
 
   get delayHint(): string {
-    return "The delay should be taken into account, for example, when using a Cobblestone Generator. This is the time it takes to generate a new block.";
+    return "Optimized mode applies when Create recognizes the fluid interaction and can route drops directly into a belt input, hopper or upward chute. The other generator preset estimates fluid regeneration.";
   }
 
   calculateFromRpm() {

@@ -56,3 +56,34 @@ img {
   height: 100%;
   object-fit: cover;
 }
+
+.tool-nav {
+  background: #1b1b19;
+  border: 1px solid #3c3b34;
+  border-radius: 10px;
+  color: #efece4;
+  padding: 11px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px 16px;
+}
+
+.app-brand { font-size: 16px; font-weight: 680; }
+.app-brand small { color: #f1c77e; font-size: 12px; }
+.tool-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; }
+.tool-links a {
+  color: #dfd9cf;
+  text-decoration: none;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+.tool-links a:hover, .tool-links a.selected {
+  color: #ffdfad;
+  border-color: #5c4b34;
+  background: #30281d;
+}

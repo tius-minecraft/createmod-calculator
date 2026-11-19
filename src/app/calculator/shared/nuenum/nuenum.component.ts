@@ -14,6 +14,7 @@ export class NuenumComponent {
   @Input({required: true}) id!: string;
   @Input({required: true}) keys!: string[];
   @Input({required: true}) values!: number[];
+  @Input() presetId?: string;
   @Input() hint?: string;
   @Input() hint_custom?: string;
   @Input() unit: string = "";

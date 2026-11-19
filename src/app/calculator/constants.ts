@@ -1,3 +1,4 @@
+import { crushingDurations, cuttingDurations, millingDurations } from "../create/recipe-durations";
 import { CalculatorData } from "./calculator.model";
 
 export var g_invisibleChar: string = "​";
@@ -104,9 +105,12 @@ export var g_sawHardness = new Map<string, number>([
   ["cactus", 0.4]
 ])
 
+export const OPTIMIZED_GENERATOR = -1;
+
 export var g_delays = new Map<string, number>([
   ["No Delay", 0],
-  ["Generator (any)", 30] 
+  ["Fluid regeneration (30 ticks)", 30],
+  ["Optimized generator", OPTIMIZED_GENERATOR]
 ]);
 
 export var g_crushingInputDelays = new Map<string, number>([
@@ -120,158 +124,10 @@ export var g_crafterInputDelays = new Map<string, number>([
   ["Chute (slower)", 2]
 ]);
 
-export var g_cuttingRecipes = new Map<string, number>(
-  [
-    ["<all other recipes>", 50], // stone cutting recipes
-    // ["log (any)", 50],
-    // ["wood (any)", 50],
-    // ["warped/crimson stem", 50],
-    // ["warped/crimson hyphae", 50],
-    // ["stripped log (any)", 50],
-    // ["stipped wood (any)", 50],
-    // ["stripped warped/crimson stem", 50],
-    // ["stripped warped/crimson hyphae", 50],
-    //["bamboo block", 50],
-    ["andesite alloy → shaft", 200],
-    ["andesite alloy", 50],
-    ["bamboo planks", 20]
-  ]
-)
-
-export var g_millstoneRecipes = new Map<string, number>([
-  ["<all other recipes>", 100],
-  ["clay block", 50],
-  ["cactus", 50],
-  ["sea pickle", 50],
-  ["sugar cane", 50],
-  ["azure bluet", 50],
-  ["blue orchid", 50],
-  ["fern", 50],
-  ["large fern", 50],
-  ["allium", 50],
-  ["lily of the valley", 50],
-  ["rose bush", 50],
-  ["oxeye daisy", 50],
-  ["poppy", 50],
-  ["dandelion", 50],
-  ["cornflower", 50],
-  ["wither rose", 50],
-  ["orange tulip", 50],
-  ["red tulip", 50],
-  ["white tulip", 50],
-  ["pink tulip", 50],
-
-  ["bone meal", 70],
-  ["coca beans", 70],
-  ["beetroot", 70],
-
-  ["wool", 100],
-  ["bone", 100],
-  ["ink sack", 100],
-  ["charcoal", 100],
-  ["coal", 100],
-  ["lapis lazuli", 100],
-  ["lilac", 100],
-  ["peony", 100],
-  ["sunflower", 100],
-  ["tall grass", 100],
-
-  ["sandstone", 150],
-  ["wheat", 150],
-
-  ["granite", 200],
-  ["terracotta", 200],
-  ["andesite", 200],
-  ["saddle", 200],
-
-  ["calcite", 250],
-  ["dripstone block", 250],
-  ["cobblestone", 250],
-  ["gravel", 250]
+export const g_cuttingRecipes = new Map<string, number>([
+  ["Stonecutting and log stripping", 50],
+  ...cuttingDurations
 ]);
 
-export var g_crushingRecipes = new Map<string, number>([
-  ["<all other recipes>", 100],
-  ["clay block", 50],
-  ["cactus", 50],
-  ["sea pickle", 50],
-  ["sugar cane", 50],
-  ["azure bluet", 50],
-  ["blue orchid", 50],
-  ["fern", 50],
-  ["large fern", 50],
-  ["allium", 50],
-  ["lily of the valley", 50],
-  ["rose bush", 50],
-  ["oxeye daisy", 50],
-  ["poppy", 50],
-  ["dandelion", 50],
-  ["cornflower", 50],
-  ["wither rose", 50],
-  ["orange tulip", 50],
-  ["red tulip", 50],
-  ["white tulip", 50],
-  ["pink tulip", 50],
-
-  ["bone meal", 70],
-  ["coca beans", 70],
-  ["beetroot", 70],
-
-  ["wool", 100],
-  ["bone", 100],
-  ["ink sack", 100],
-  ["charcoal", 100],
-  ["coal", 100],
-  ["lapis lazuli", 100],
-  ["lilac", 100],
-  ["peony", 100],
-  ["sunflower", 100],
-  ["tall grass", 100],
-  ["blaze rod", 100],
-
-  ["sandstone", 150],
-  ["wheat", 150],
-  ["prismarine crystal", 150],
-  ["coal ore", 150],
-  ["amethist cluster", 150],
-  ["glowstone", 150],
-  ["amethist block", 150],
-
-  ["granite", 200],
-  ["terracotta", 200],
-  ["andesite", 200],
-  ["saddle", 200],
-  ["horse armor", 200],
-
-  ["calcite", 250],
-  ["dripstone block", 250],
-  ["cobblestone", 250],
-  ["gravel", 250],
-  ["copper ore", 250],
-  ["zinc ore", 250],
-  ["iron ore", 250],
-  ["gold ore", 250],
-  ["redstone ore", 250],
-  ["lapis ore", 250],
-  ["netherrack", 250],
-
-  ["diorite", 350],
-  ["tuff", 350],
-  ["diamond ore", 350],
-  ["emerald ore", 350],
-  ["deepslate copper ore", 350],
-  ["deepslate zinc ore", 350],
-  ["deepslate iron ore", 350],
-  ["deepslate gold ore", 350],
-  ["deepslate redstone ore", 350],
-  ["deepslate lapis ore", 350],
-  ["nether gold ore", 350],
-  ["nether quarts ore", 350],
-
-  ["raw ore (any)", 400],
-
-  ["deepslate diamond ore", 450],
-  ["deepslate emerald ore", 450],
-
-  ["obsidian", 500]
-])
+export const g_millstoneRecipes = new Map<string, number>(millingDurations);
+export const g_crushingRecipes = new Map<string, number>(crushingDurations);
