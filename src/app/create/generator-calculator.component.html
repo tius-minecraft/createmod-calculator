@@ -1,0 +1,45 @@
+<main class="workbench workshop">
+  @switch (generator.id) {
+    @case ('windmill') {
+      <app-input-side>
+        <app-number id="sails" [min]="0" [max]="2048" [(value)]="sails">Sail blocks</app-number>
+      </app-input-side>
+    }
+    @case ('steam') {
+      <app-input-side>
+        <div class="calculator-fields">
+          <app-number id="tank-blocks" [min]="0" [max]="288" [(value)]="tanks">Tank blocks</app-number>
+          <app-number id="heat-levels" [min]="0" [max]="18" [(value)]="heat">Active heat levels</app-number>
+          <app-number id="water-supply" [min]="0" [max]="1000000" [unit]="'mB/tick'" [(value)]="water">Water supply</app-number>
+          <app-number id="engines" [min]="1" [max]="1024" [(value)]="engines">Steam engines</app-number>
+        </div>
+        <label class="calculator-checkbox"><input type="checkbox" [(ngModel)]="passive"> Passive heat when no active heat is present</label>
+      </app-input-side>
+    }
+    @case ('creative') {
+      <app-input-side>
+        <app-number id="motor-rpm" [min]="1" [max]="maxRpm" [(value)]="motorRpm">Rotor speed</app-number>
+      </app-input-side>
+    }
+  }
+  <app-output-side>
+    @if (power; as result) {
+      <app-number id="output-rpm" [readonly]="true" [persist]="false" [value]="result.rpm" [unit]="'RPM'">Output RPM</app-number>
+      <app-number id="capacity" [readonly]="true" [persist]="false" [value]="decimal(result.su)!"
+        [unit]="'SU'" [stress]="true">Stress capacity</app-number>
+    }
+    @switch (generator.id) {
+      @case ('windmill') {
+        <app-info>Assembly requires at least 8 sails. Each group of 8 adds 1 RPM, up to 16 RPM.</app-info>
+      }
+      @case ('steam') {
+        <app-info>Stress capacity is the total for all attached engines. The limit is set by tank size, heat and water supply.</app-info>
+      }
+    }
+    @if (generator.id === 'small' || generator.id === 'large') {
+      <app-info>The wheel needs flowing water to reach its rated output.</app-info>
+    } @else if (generator.id === 'crank' || generator.id === 'valve') {
+      <app-info>Provides power while operated.</app-info>
+    }
+  </app-output-side>
+</main>

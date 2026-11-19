@@ -1,6 +1,6 @@
 <div class="head">
-  <label [class.stress]="stress()" [tooltip]="hint()">
+  <label [attr.for]="'number-' + id()" [class.stress]="stress()" [tooltip]="hint()">
     <ng-content />
   </label>
 </div>
-<input [class.stress]="stress()" [clickSelect]="readonly()" [readOnly]="readonly()" (focus)="onFocus()" (blur)="onBlur()" [ngModel]="ngModelValue()" (ngModelChange)="onNgModelChange($event)">  
+<input [id]="'number-' + id()" inputmode="decimal" [disabled]="disabled()" [class.stress]="stress()" [clickSelect]="readonly()" [readOnly]="readonly()" (focus)="onFocus()" (blur)="onBlur()" [ngModel]="ngModelValue()" (ngModelChange)="onNgModelChange($event)">

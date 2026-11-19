@@ -1,7 +1,7 @@
-<label [tooltip]="hint">
+<label [attr.for]="'enum-' + id" [tooltip]="hint">
   <ng-content />
 </label>
-<select [ngModel]="ngModelValue" (ngModelChange)="onngModelValueChange($event)">
+<select [id]="'enum-' + id" [ngModel]="ngModelValue" (ngModelChange)="onngModelValueChange($event)">
   @for(opt of values; track opt; let i = $index) {
     <option [value]="i">{{opt}}</option>
   }

@@ -1,9 +1,4 @@
 <main class="workbench planner">
-  <div class="tool-heading">
-    <h1>Factory planner</h1>
-    <button type="button" class="tool-button" (click)="exportCsv()" [disabled]="!plan || !settings.goals.length">Download CSV</button>
-  </div>
-
   @if (error) {
     <p class="tool-notice" role="alert">{{ error }} <button type="button" class="tool-button" (click)="load()">Retry</button></p>
   } @else if (!catalog) {
@@ -12,7 +7,10 @@
     <section class="tool-panel">
       <div class="section-heading">
         <h2>Production targets</h2>
-        <button type="button" class="tool-button" (click)="showSettings = !showSettings" [attr.aria-expanded]="showSettings">Machine settings</button>
+        <div class="section-actions">
+          <button type="button" class="tool-button" (click)="showSettings = !showSettings" [attr.aria-expanded]="showSettings">Machine settings</button>
+          <button type="button" class="tool-button" (click)="exportCsv()" [disabled]="!plan || !settings.goals.length">Download CSV</button>
+        </div>
       </div>
       @if (showSettings) {
         <div class="tool-fields compact-fields">
@@ -235,7 +233,7 @@
               <h2>Power and byproducts</h2>
               <p>Counts use rated generator output for the installed load.</p>
             </div>
-            <a class="tool-button" routerLink="/generators">Generator calculator</a>
+            <a class="tool-button" [routerLink]="['/', generatorRoute(generator)]">Generator calculator</a>
           </div>
           <div class="tool-fields power-fields">
             <label>Power source

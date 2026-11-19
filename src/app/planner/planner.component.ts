@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { DEFAULT_MAX_RPM, GENERATORS } from '../create/kinetics';
 import { itemName, loadCatalog, MACHINES, materialUnit, RecipeCatalog, recipeName } from '../create/recipes';
 import { MACHINE_ICONS, iconPath } from '../create/tool-icons';
+import { generatorRoute, type GeneratorId } from '../create/calculator-tabs';
 import { buildPlan, Plan, PlanStage, PlannerSettings, Goal, selectRecipe } from './production-plan';
 
 const STORAGE_KEY = 'create-6.0.10.factory';
@@ -39,7 +40,8 @@ export class PlannerComponent implements OnInit {
   selectedStage = '';
   showSettings = false;
   showProducts = false;
-  generator = 'large';
+  generator: GeneratorId = 'large';
+  readonly generatorRoute = generatorRoute;
 
   ngOnInit() {
     this.load();

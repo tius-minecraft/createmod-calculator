@@ -1,12 +1,18 @@
 <div class="content">
   <app-header />
-  @if (!isWorkshop) {
-    <a [href]="calculator.wikiPage" target="_blank" rel="noopener">
-      <h1 [class.fadein]="switchTabAnimation" (animationend)="onAnimationend()">{{ calculator.name }}</h1>
-    </a>
+  @for (tab of [calculator]; track tab.id) {
+    <h1 class="calculator-title">
+      @if (tab.wikiPage) {
+        <a [href]="tab.wikiPage" target="_blank" rel="noopener">{{ tab.name }}</a>
+      } @else {
+        {{ tab.name }}
+      }
+    </h1>
   }
-  <div class="calculator" [class.workshop-route]="isWorkshop" [class.fadein]="!isWorkshop && switchTabAnimation">
-    <img class="background-img" [src]="workshopIcon ?? calculator.iconPath" alt="">
+  <div class="calculator" [class.planner-route]="calculator.id === plannerId">
+    @for (tab of [calculator]; track tab.id) {
+      <img class="background-img" [src]="tab.iconPath" alt="">
+    }
     <router-outlet />
   </div>
 </div>

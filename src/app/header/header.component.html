@@ -1,16 +1,18 @@
-<nav class="header" aria-label="Machine calculators">
-  @for (calculator of calculatorsData; track calculator.id) {
-    <button type="button" class="tab" [routerLink]="['/', calculator.id]" routerLinkActive="selected"
-      ariaCurrentWhenActive="page" [tooltip]="calculator.name">
-      <img [src]="calculator.iconPath" [alt]="calculator.name">
-    </button>
+<div class="tab-groups">
+  @for (group of groups; track group.id) {
+    <nav class="tab-group" [class.processing]="group.id === 'processing'" [class.generators]="group.id === 'generators'"
+      [class.logistics]="group.id === 'logistics'" [attr.aria-label]="group.label">
+      <div class="group-label" aria-hidden="true">{{ group.label }}</div>
+      <div #list class="tile-list">
+        @for (tab of group.tabs; track tab.id) {
+          <a #tile class="tool-tile" [routerLink]="['/', tab.id]" routerLinkActive="selected"
+            ariaCurrentWhenActive="page" [attr.aria-label]="tab.name"
+            (isActiveChange)="$event && revealActive(list, tile)">
+            <span class="tab" [tooltip]="tab.caption ? tab.name : undefined"><img [src]="tab.iconPath" alt=""></span>
+            <span class="tile-label">{{ tab.caption ?? tab.name }}</span>
+          </a>
+        }
+      </div>
+    </nav>
   }
-</nav>
-<nav class="tool-header" aria-label="Factory tools">
-  @for (tool of factoryTabs; track tool.id) {
-    <a class="tool-tile" [routerLink]="['/', tool.id]" routerLinkActive="selected" ariaCurrentWhenActive="page">
-      <span class="tab" aria-hidden="true"><img [src]="iconPath(tool.icon)" alt=""></span>
-      <span class="tile-label">{{ tool.label }}</span>
-    </a>
-  }
-</nav>
+</div>

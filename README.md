@@ -24,6 +24,8 @@ The planner works with expected yields for random outputs. It aggregates common 
 
 The recipe catalog covers base Create and regular Minecraft crafting, cooking, and stonecutting recipes. Mod-dependent recipes and special recipes that cannot be expressed as fixed ingredients and yields are excluded. The catalog includes recipe facts and identifiers. It contains no game artwork.
 
+The Generators group has a separate calculator for each power source. The planner's generator link opens the calculator for its selected source.
+
 ## Timing assumptions
 
 - Default server config and 20 TPS. Real throughput depends on the feed, output clearance, belt routing, and fluid and fuel supply. The Packager and Spout tools accept a separate TPS setting.
@@ -52,3 +54,5 @@ The app retains its [GPL-3.0 license](LICENSE). Create recipe data is derived fr
 ### Interface imagery
 
 Create illustrations for the new controls come from the Create Wiki on MC-WIKI.net. [Packager](https://mc-wiki.net/create/packager/), [Spout](https://mc-wiki.net/create/spout/), [Precision Mechanism](https://mc-wiki.net/create/precision-mechanism/), [Brass Funnel](https://mc-wiki.net/create/brass-funnel/), [Andesite Funnel](https://mc-wiki.net/create/andesite-funnel/), [Item Drain](https://mc-wiki.net/create/item-drain/), [Windmill Bearing](https://mc-wiki.net/create/windmill-bearing/), [Steam Engine](https://mc-wiki.net/create/steam-engine/), [Hand Crank](https://mc-wiki.net/create/hand-crank/), and [Creative Motor](https://mc-wiki.net/create/creative-motor/).
+
+Generator tab images for [Water Wheel](https://mineuniverse.net/wiki/create/water-wheel), [Large Water Wheel](https://mineuniverse.net/wiki/create/large-water-wheel), and [Copper Valve Handle](https://mineuniverse.net/wiki/create/copper-valve-handle) come from the MineUniverse Create Wiki.

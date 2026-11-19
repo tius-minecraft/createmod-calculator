@@ -1,35 +1,43 @@
-import { Component, inject, OnInit } from '@angular/core';
 import { DecimalPipe, PercentPipe } from '@angular/common';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
+import { decimal } from '../calculator/constants';
+import { EnumComponent } from '../calculator/shared/enum/enum.component';
+import { InfoComponent } from '../calculator/shared/info/info.component';
+import { InputSideComponent } from '../calculator/shared/input-side/input-side.component';
+import { NumberComponent } from '../calculator/shared/number/number.component';
+import { OutputSideComponent } from '../calculator/shared/output-side/output-side.component';
 import {
-  CREATE_SOURCE, DRAIN_TICKS, funnelTicks, GENERATORS, OPERATIONS_PER_MINUTE, PACKAGER_MODES,
-  packagerPayload, SPOUT_TICKS, steamPower, TICKS_PER_SECOND, windmillPower,
+  CREATE_SOURCE, DEFAULT_MAX_RPM, DRAIN_TICKS, funnelTicks, PACKAGER_MODES, packagerPayload, SPOUT_TICKS, TICKS_PER_SECOND,
 } from './kinetics';
-import { GENERATOR_ICONS, MACHINE_ICONS, iconPath } from './tool-icons';
 import { itemName, loadCatalog, MACHINES, materialUnit, Recipe, sequenceRates } from './recipes';
+import { MACHINE_ICONS, iconPath } from './tool-icons';
 
 @Component({
   standalone: true,
-  imports: [FormsModule, DecimalPipe, PercentPipe, RouterLink],
+  imports: [
+    FormsModule, DecimalPipe, PercentPipe, EnumComponent, InfoComponent, InputSideComponent, NumberComponent, OutputSideComponent,
+  ],
   templateUrl: './workshop.component.html',
 })
 export class WorkshopComponent implements OnInit {
   readonly tool = inject(ActivatedRoute).snapshot.data['tool'] as string;
   readonly source = CREATE_SOURCE;
-  readonly generators = GENERATORS;
-  readonly generatorIcons = GENERATOR_ICONS;
+  readonly decimal = decimal;
   readonly machineIcons = MACHINE_ICONS;
   readonly iconPath = iconPath;
-  readonly packagerModes = PACKAGER_MODES;
+  readonly modeLabels = PACKAGER_MODES.map(mode => mode.label);
   readonly machines = MACHINES;
   readonly itemName = itemName;
   readonly unit = materialUnit;
   readonly ticksPerSecond = TICKS_PER_SECOND;
+  readonly maxRpm = DEFAULT_MAX_RPM;
   readonly spoutTicks = SPOUT_TICKS;
   readonly drainTicks = DRAIN_TICKS;
   readonly Infinity = Number.POSITIVE_INFINITY;
-  mode: typeof PACKAGER_MODES[number]['id'] = 'queued';
+
+  mode = 0;
   slots = 9;
   stack = 64;
   bulky = false;
@@ -38,30 +46,26 @@ export class WorkshopComponent implements OnInit {
   fluidAmount = 250;
   supply = 0;
   extractionTimer = 8;
-  rpm = 256;
+  rpm = DEFAULT_MAX_RPM;
   beltRpm = 128;
-  sails = 32;
-  tanks = 16;
-  heat = 4;
-  water = 40;
-  engines = 4;
-  passive = false;
-  motorRpm = 256;
   sequences: Recipe[] = [];
-  selectedSequence = 'create:sequenced_assembly/precision_mechanism';
+  sequenceLabels: string[] = [];
+  sequenceIndex = 0;
   error = false;
 
   async ngOnInit() {
     if (this.tool !== 'sequence') return;
     try {
       this.sequences = (await loadCatalog()).sequences;
+      this.sequenceLabels = this.sequences.map(recipe => itemName(recipe.outputs[0].item));
+      this.sequenceIndex = Math.max(0, this.sequences.findIndex(recipe => recipe.outputs[0].item === 'create:precision_mechanism'));
     } catch {
       this.error = true;
     }
   }
 
   get packagerCycle() {
-    return this.packagerModes.find(mode => mode.id === this.mode)!.ticks;
+    return (PACKAGER_MODES[this.mode] ?? PACKAGER_MODES[0]).ticks;
   }
 
   get packageRate() {
@@ -85,31 +89,15 @@ export class WorkshopComponent implements OnInit {
     return funnelTicks(this.extractionTimer);
   }
 
-  get windmill() {
-    return windmillPower(this.sails);
-  }
-
-  get steam() {
-    return steamPower(this.tanks, this.heat, this.water, this.engines, this.passive);
-  }
-
   get sequence() {
-    return this.sequences.find(recipe => recipe.id === this.selectedSequence);
+    return this.sequences[this.sequenceIndex] ?? this.sequences[0];
   }
 
   get sequenceResult() {
     return this.sequence ? sequenceRates(this.sequence, { rpm: this.rpm, beltRpm: this.beltRpm, batch: 1 }) : undefined;
   }
 
-  numeric(value: number | null, low: number, high: number): number {
-    return Math.max(low, Math.min(high, typeof value === 'number' && Number.isFinite(value) ? value : low));
-  }
-
   rate(ticks: number) {
-    return operationsPerMinuteAt(ticks, this.tps);
+    return this.tps * 60 / ticks;
   }
-}
-
-function operationsPerMinuteAt(ticks: number, tps: number) {
-  return OPERATIONS_PER_MINUTE * tps / (TICKS_PER_SECOND * ticks);
 }

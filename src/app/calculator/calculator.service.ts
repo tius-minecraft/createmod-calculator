@@ -1,15 +1,15 @@
 import { Injectable } from "@angular/core";
 import { CalculatorData } from "./calculator.model";
-import { g_calculatorsData } from "./constants";
+import { CALCULATOR_TABS } from "../create/calculator-tabs";
 
 @Injectable({
   'providedIn': 'root'
 })
 export class CalculatorService {
-  selectedCalculatorId: string = g_calculatorsData[0].id;
+  selectedCalculatorId: string = CALCULATOR_TABS[0].id;
 
   getCalculator(id: string): CalculatorData | undefined {
-    return g_calculatorsData.find((c) => c.id === id);
+    return CALCULATOR_TABS.find((c) => c.id === id);
   }
 
   getSelectedCalculator(): CalculatorData {

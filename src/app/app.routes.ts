@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { GENERATOR_TABS, PLANNER_TAB, WORKSHOP_TABS } from './create/calculator-tabs';
 import { ArmCalculatorComponent } from './calculator/arm-calculator/arm-calculator.component';
 import { BeltCalculatorComponent } from './calculator/belt-calculator/belt-calculator.component';
 import { CrafterCalculatorComponent } from './calculator/crafter-calculator/crafter-calculator.component';
@@ -13,15 +14,16 @@ import { PumpCalculatorComponent } from './calculator/pump-calculator/pump-calcu
 import { SawCalculatorComponent } from './calculator/saw-calculator/saw-calculator.component';
 
 const workshop = () => import('./create/workshop.component').then(module => module.WorkshopComponent);
+const generatorCalculator = () => import('./create/generator-calculator.component').then(module => module.GeneratorCalculatorComponent);
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'planner' },
-  { path: 'planner', loadComponent: () => import('./planner/planner.component').then(module => module.PlannerComponent) },
-  { path: 'generators', loadComponent: workshop, data: { tool: 'generators' } },
-  { path: 'packager', loadComponent: workshop, data: { tool: 'packager' } },
-  { path: 'spout', loadComponent: workshop, data: { tool: 'spout' } },
-  { path: 'sequence', loadComponent: workshop, data: { tool: 'sequence' } },
-  { path: 'logistics', loadComponent: workshop, data: { tool: 'logistics' } },
+  { path: '', pathMatch: 'full', redirectTo: PLANNER_TAB.id },
+  { path: PLANNER_TAB.id, loadComponent: () => import('./planner/planner.component').then(module => module.PlannerComponent) },
+  { path: 'generators', pathMatch: 'full', redirectTo: GENERATOR_TABS[0].id },
+  ...GENERATOR_TABS.map(({ id, generator }) => ({
+    path: id, loadComponent: generatorCalculator, data: { generator },
+  })),
+  ...WORKSHOP_TABS.map(({ id }) => ({ path: id, loadComponent: workshop, data: { tool: id } })),
   {
     path: 'drill',
     component: DrillCalculatorComponent

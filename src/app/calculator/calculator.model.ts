@@ -2,5 +2,6 @@ export interface CalculatorData {
   name: string;
   id: string;
   iconPath: string;
-  wikiPage: string;
+  wikiPage?: string;
+  caption?: string;
 }

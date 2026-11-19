@@ -19,11 +19,13 @@ export class NumberComponent {
   unit = input<string>("");
   hint = input<string | undefined>(undefined);
   readonly = input<boolean>(false);
+  disabled = input(false);
+  persist = input(true);
   stress = input<boolean>(false);
   @Input()
   set value(newValue: number) {
     if(!this.initialized) {
-      let savedValue = this.calculatorService.getSavedProperty(this.id());
+      const savedValue = this.persist() ? this.calculatorService.getSavedProperty(this.id()) : null;
       if(savedValue !== null) {
         Promise.resolve().then(() => {
           this.enteredValue.set(savedValue.toString());
@@ -41,7 +43,7 @@ export class NumberComponent {
       this.bluredValue = newValue;
     else
       this.enteredValue.set(newValue.toString());
-    this.calculatorService.saveProperty(this.id(), newValue);
+    if (this.persist()) this.calculatorService.saveProperty(this.id(), newValue);
   }
   @Output() valueChange = new EventEmitter<number>();
   @Output() userChange = new EventEmitter<number>();
@@ -58,7 +60,7 @@ export class NumberComponent {
       this.enteredValue.set(newNumber.toString());
     }
     
-    this.calculatorService.saveProperty(this.id(), newNumber);
+    if (this.persist()) this.calculatorService.saveProperty(this.id(), newNumber);
     this.valueChange.emit(newNumber);
     this.userChange.emit(newNumber);
   }
