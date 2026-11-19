@@ -1,0 +1,42 @@
+:host { display: block; min-width: 0; }
+
+.ponder {
+  margin: 0;
+  border: 2px solid;
+  border-image: var(--secondaryGradient) 1;
+  outline: 2px solid black;
+  background: #1b171c;
+}
+
+.scene-stage {
+  background: radial-gradient(ellipse at 50% 68%, #40383d 0, #28232b 54%, #161418 100%);
+  display: grid;
+  place-items: center;
+}
+
+canvas {
+  width: 100%;
+  height: auto;
+  max-width: 600px;
+  display: block;
+  image-rendering: pixelated;
+}
+
+figcaption {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid #403946;
+  padding: 9px 10px 11px;
+  min-height: 128px;
+  align-content: start;
+}
+
+.ponder-controls { display: flex; gap: 8px; }
+.ponder-controls .step { width: 30px; }
+.ponder-controls .step[aria-pressed="true"] {
+  background: #332633;
+  border-image: var(--primaryHoverGradient) 1;
+}
+
+.scene-caption strong { font-size: 13px; }
+.scene-caption p { margin-top: 3px; }

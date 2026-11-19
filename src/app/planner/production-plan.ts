@@ -20,6 +20,7 @@ export interface PlannerSettings extends MachineSettings {
   ingredients: Record<string, string>;
   limits: Partial<Record<string, number>>;
   farms?: Partial<Record<string, FarmSettings>>;
+  view?: 'flow' | 'graph';
 }
 
 export interface MaterialRate {
@@ -98,13 +99,16 @@ export function selectRecipe(item: string, catalog: RecipeCatalog, settings: Pla
 
 export function automaticRecipe(item: string, catalog: RecipeCatalog, settings: PlannerSettings): Recipe | undefined {
   const recipes = catalog.producers(item);
+  const source = recipes.find(recipe => recipe.outputs[0].item === item
+    && (recipe.farm || recipe.generator || recipe.bottomless === 'default'));
+  if (source) return source;
 
   if (COMMON_EXTERNAL.has(item) || /:(?:raw_|stripped_)?[^:]*_(?:ore|log|stem)$|:raw_[^:]+$/.test(item)) {
     return undefined;
   }
 
   const primary = recipes.filter(recipe =>
-    !recipe.farm &&
+    !recipe.farm && !recipe.bottomless &&
     (recipe.outputs[0].item === item || recipe.machine === 'drain')
     && !recipe.inputs.some((input, index) => ingredientChoice(input, settings.ingredients[recipe.id + '/' + index]) === item)
   );
@@ -112,7 +116,6 @@ export function automaticRecipe(item: string, catalog: RecipeCatalog, settings: 
 }
 
 function preference(recipe: Recipe, item: string): number {
-  if (recipe.id === 'planner:optimized_cobblestone_generator') return -100;
   if (/from_(nuggets|block|decompacting)|recycling/.test(recipe.id)) return 30;
   if (recipe.machine === 'fan_blasting' || recipe.machine === 'fan_smoking') {
     if (/from_(smelting_raw_|raw_ore)/.test(recipe.id)) return -14;

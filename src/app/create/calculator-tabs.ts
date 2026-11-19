@@ -34,6 +34,13 @@ export const PLANNER_TAB: CalculatorData = {
   iconPath: iconPath('cogwheel'),
 };
 
+export const FARMS_TAB: CalculatorData = {
+  id: 'farms',
+  name: 'Farms & block generators',
+  caption: 'Farms',
+  iconPath: iconPath('wheat'),
+};
+
 export const WORKSHOP_TABS: CalculatorData[] = [
   { id: 'spout', name: 'Spout', iconPath: iconPath('spout'), wikiPage: 'https://mc-wiki.net/create/spout/' },
   { id: 'sequence', name: 'Sequenced Assembly', caption: 'Assembly', iconPath: iconPath('precision-mechanism'),
@@ -51,7 +58,8 @@ const machineTabs: CalculatorData[] = g_calculatorsData.map(tab => ({
 export const TAB_GROUPS = [
   { id: 'processing', label: 'Processing', tabs: [...machineTabs, ...WORKSHOP_TABS].filter(tab => !LOGISTICS.has(tab.id)) },
   { id: 'logistics', label: 'Logistics', tabs: [...machineTabs, ...WORKSHOP_TABS].filter(tab => LOGISTICS.has(tab.id)) },
-  { id: 'generators', label: 'Generators', tabs: GENERATOR_TABS },
+  { id: 'generators', label: 'Power generators', tabs: GENERATOR_TABS },
+  { id: 'farms', label: 'Resources', tabs: [FARMS_TAB] },
   { id: 'planning', label: 'Planning', tabs: [PLANNER_TAB] },
 ];
 

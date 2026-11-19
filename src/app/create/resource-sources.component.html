@@ -1,0 +1,93 @@
+<main class="workbench resource-sources">
+  <section class="tool-panel source-picker" aria-label="Resource sources">
+    <nav class="section-actions" aria-label="Source category">
+      @for (category of groups; track category.label) {
+        <a class="tool-button" [class.active-category]="category === group"
+          [routerLink]="['/farms', sourceId(category.recipes[0])]">{{ category.label }}</a>
+      }
+    </nav>
+    <nav class="source-choices" [attr.aria-label]="group.label">
+      @for (entry of group.recipes; track entry.id) {
+        <a class="tool-button source-link" [routerLink]="['/farms', sourceId(entry)]"
+          routerLinkActive="active-category" ariaCurrentWhenActive="page">
+          <app-item-icon [item]="entry.outputs[0].item" [atlas]="atlas" /> {{ itemName(entry.outputs[0].item) }}
+        </a>
+      }
+    </nav>
+  </section>
+
+  @if (source; as recipe) {
+    <div class="source-layout">
+      <section class="tool-panel source-guide" aria-labelledby="source-title">
+        <div class="source-title">
+          <app-item-icon [item]="recipe.outputs[0].item" [atlas]="atlas" />
+          <div>
+            <h2 id="source-title">{{ itemName(recipe.outputs[0].item) }}</h2>
+            <p>{{ recipe.farm?.method ?? 'Mechanical Drill · block generator' }}</p>
+          </div>
+        </div>
+        <app-ponder-scene [recipe]="recipe" [atlas]="atlas" />
+        @if (recipe.generator; as generator) {
+          <p>{{ generator.formation }} {{ collection(generator) }}</p>
+        } @else {
+          <p>{{ recipe.farm?.setup }}</p>
+        }
+        <ul class="source-materials" aria-label="Equipment and starting materials">
+          @for (item of equipment; track item) {
+            <li><app-item-icon [item]="item" [atlas]="atlas" />{{ itemName(item) }}</li>
+          }
+        </ul>
+      </section>
+
+      <section class="tool-panel source-rates planner" aria-label="Production rates">
+        <h2>Production rates</h2>
+        @if (recipe.generator) {
+          <label class="source-field">Drill RPM
+            <input type="number" min="0" max="256" [ngModel]="rpm" (ngModelChange)="setRpm($event)">
+          </label>
+          <div class="tool-metrics source-metrics">
+            <div><span>Items/min per drill</span><strong>{{ generatorRate | number: '1.0-2' }}</strong></div>
+            <div><span>Drill load</span><strong>{{ drillStress | number }} <small>SU</small></strong></div>
+          </div>
+          <p>The estimate uses direct collection and the Create 6.0.10 drill optimization at 20 TPS.
+            Keep the output clear at the displayed rate. The planner uses its configured machine RPM.</p>
+          <a class="tool-button source-action" routerLink="/drill">Drill calculator</a>
+        } @else {
+          <div class="tool-fields">
+            <label>Minutes per harvest
+              <input type="number" min=".001" max="1440" step="any" [ngModel]="harvestMinutes"
+                (ngModelChange)="setFarmRate('minutes', $event)">
+            </label>
+            <label>{{ itemName(recipe.outputs[0].item) }} per harvest
+              <input type="number" min=".001" max="1000" step="any" [ngModel]="harvestYield"
+                (ngModelChange)="setFarmRate('yield', $event)">
+            </label>
+            <label>Installed plots
+              <input type="number" min="0" max="1000000" placeholder="Auto" [ngModel]="farmSettings?.plots ?? null"
+                (ngModelChange)="setFarmRate('plots', $event)">
+            </label>
+          </div>
+          <div class="tool-metrics source-metrics">
+            <div><span>Items/min per plot</span><strong>{{ harvestYield / harvestMinutes | number: '1.0-4' }}</strong></div>
+            @if (farmSettings?.plots != null) {
+              <div><span>Items/min installed</span><strong>{{ farmSettings!.plots! * harvestYield / harvestMinutes | number: '1.0-4' }}</strong></div>
+            }
+          </div>
+          @if (recipe.outputs.length > 1) {
+            <ul class="materials source-outputs" aria-label="Extra drops">
+              @for (drop of recipe.outputs.slice(1); track drop.item) {
+                <li><span><app-item-icon [item]="drop.item" [atlas]="atlas" />{{ itemName(drop.item) }}</span>
+                  <strong>{{ drop.amount | number:'1.0-3' }} per harvest @if (drop.chance < 1) { · {{ drop.chance | percent }} chance }</strong></li>
+              }
+            </ul>
+          }
+          <p>Initial values estimate a mature harvest. The planner uses your saved interval, yield and installed plot count.
+            Leave plots blank to size the farm from demand.</p>
+        }
+        <a class="tool-button source-action" routerLink="/planner">Factory planner</a>
+      </section>
+    </div>
+  } @else {
+    <p class="tool-notice" role="status">Unknown resource source. Choose one from the list.</p>
+  }
+</main>

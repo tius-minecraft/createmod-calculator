@@ -25,10 +25,10 @@ function settings(): PlannerSettings {
 describe('Factory production plan', () => {
   it('aggregates shared requirements and accounts for probabilistic yields, fluids and steps', () => {
     const plan = buildPlan(new RecipeCatalog([sheet, mechanism]), settings());
-    expect(plan.stages.map(stage => stage.crafts)).toEqual([90, 75]);
-    expect(plan.external).toEqual([{ item: 'fluid:minecraft:water', rate: 37500 }, { item: 'test:ingot', rate: 90 }]);
+    expect(plan.stages.map(stage => stage.crafts)).toEqual([37500, 90, 75]);
+    expect(plan.external).toEqual([{ item: 'test:ingot', rate: 90 }]);
     expect(plan.byproducts).toEqual([{ item: 'test:slag', rate: 15 }]);
-    expect(plan.stages[1].equipment.find(machine => machine.machine === 'spout')?.installed).toBe(7);
+    expect(plan.stages[2].equipment.find(machine => machine.machine === 'spout')?.installed).toBe(7);
     expect(plan.capacity).toBe(1);
   });
 
@@ -94,9 +94,10 @@ describe('Factory production plan', () => {
     const wheat = 'minecraft:wheat';
     const wheatFarm = 'planner:farm/wheat';
     configuration.goals = [{ item: wheat, rate: 4 }];
+    expect(buildPlan(catalog, configuration).stages[0].recipe.id).toBe(wheatFarm);
+    configuration.recipes[wheat] = '';
     expect(buildPlan(catalog, configuration).external).toEqual([{ item: wheat, rate: 4 }]);
-
-    configuration.recipes[wheat] = wheatFarm;
+    delete configuration.recipes[wheat];
     configuration.farms = { [wheatFarm]: { minutes: 5, yield: 2, plots: 5 } };
     const plan = buildPlan(catalog, configuration);
     expect(plan.plots).toBe(5);
@@ -107,8 +108,40 @@ describe('Factory production plan', () => {
 
     const oak = 'minecraft:oak_log';
     configuration.goals = [{ item: oak, rate: 10 }];
-    configuration.recipes[oak] = 'planner:farm/oak_tree';
     expect(buildPlan(catalog, configuration).external).toEqual([{ item: 'minecraft:oak_sapling', rate: 2 }]);
+  });
+
+  it('uses all four block generators automatically and applies their actual drill hardness', () => {
+    const configuration = settings();
+    const stone = ['minecraft:cobblestone', 'minecraft:basalt', 'create:limestone', 'create:scoria'];
+    configuration.rpm = 128;
+    configuration.goals = stone.map(item => ({ item, rate: 120 }));
+    const catalog = new RecipeCatalog([]);
+    const plan = buildPlan(catalog, configuration);
+    expect(plan.external).toEqual([]);
+    expect(stone.map(item => plan.stages.find(stage => stage.item === item)?.equipment[0].needed))
+      .toEqual([2.2, 1.1, 1.1, 2.2]);
+    expect(plan.blocks).toBe(10);
+    expect(plan.stress).toBe(10 * 4 * 128);
+  });
+
+  it('uses default bottomless fluids, honors external supplies and allows configured placeable fluids', () => {
+    const catalog = new RecipeCatalog([]);
+    const configuration = settings();
+    const water = 'fluid:minecraft:water';
+    const lava = 'fluid:minecraft:lava';
+    const chocolate = 'fluid:create:chocolate';
+    configuration.goals = [water, lava, chocolate].map(item => ({ item, rate: 1000 }));
+    const plan = buildPlan(catalog, configuration);
+    expect(plan.stages.map(stage => stage.item)).toEqual([lava, water]);
+    expect(plan.external).toEqual([{ item: chocolate, rate: 1000 }]);
+    expect(plan.stress).toBe(0);
+    configuration.recipes[water] = '';
+    configuration.recipes[chocolate] = 'planner:bottomless/create:chocolate';
+    const overridden = buildPlan(catalog, configuration);
+    expect(overridden.stages.map(stage => stage.item)).toEqual([chocolate, lava]);
+    expect(overridden.external).toEqual([{ item: water, rate: 1000 }]);
+    expect(catalog.producers('fluid:minecraft:milk')).toEqual([]);
   });
 
   it('distinguishes serial operation from a dedicated assembly pipeline', () => {

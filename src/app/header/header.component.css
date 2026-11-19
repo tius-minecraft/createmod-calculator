@@ -1,6 +1,6 @@
 .tab-groups {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr) minmax(80px, 1fr);
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr) minmax(80px, 1fr) minmax(80px, 1fr);
   gap: 13px 16px;
 }
 
@@ -80,7 +80,7 @@ img {
 }
 
 @media (max-width: 880px) {
-  .tab-groups { grid-template-columns: minmax(0, 1fr) minmax(66px, auto); gap: 10px; }
+  .tab-groups { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(60px, auto)); gap: 10px; }
   .logistics { grid-column: 1 / -1; }
   .tile-list { gap: 3px; }
 }

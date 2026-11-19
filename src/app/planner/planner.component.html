@@ -58,15 +58,6 @@
             </div>
           }
         </div>
-        <label class="farm-selector" for="planner-add-farm">
-          <span class="visually-hidden">Add plant farm</span>
-          <select id="planner-add-farm" #farmPicker (change)="addFarm(farmPicker.value); farmPicker.value = ''">
-            <option value="">Add plant farm…</option>
-            @for (farm of catalog.farms; track farm.id) {
-              <option [value]="farm.id">{{ recipeName(farm) }}</option>
-            }
-          </select>
-        </label>
         <div class="examples" aria-label="Example plans">
           @for (example of examples; track example.item) {
             <button type="button" class="tool-button example" (click)="useExample(example)">{{ example.title ?? itemName(example.item) }}</button>
@@ -111,61 +102,75 @@
               <h2>Material flow</h2>
               <p>Choose a recipe or farm for any material in the chain.</p>
             </div>
+            <div class="section-actions view-switch" role="group" aria-label="Material flow view">
+              <button type="button" class="tool-button" [attr.aria-pressed]="settings.view !== 'graph'" (click)="setView('flow')">Cards</button>
+              <button type="button" class="tool-button" [attr.aria-pressed]="settings.view === 'graph'" (click)="setView('graph')">Graph</button>
+            </div>
+          </div>
+          @if (settings.view === 'graph') {
+            <app-plan-graph [plan]="result" [goals]="settings.goals" [atlas]="atlas" [selected]="selectedStage"
+              (selectMaterial)="view($event, true)" />
+          } @else {
             <div class="flow-controls" aria-label="Scroll material flow">
               <button type="button" class="tool-button icon-button" aria-label="Previous stages" (click)="shiftFlow(flow, -1)">←</button>
               <button type="button" class="tool-button icon-button" aria-label="Next stages" (click)="shiftFlow(flow, 1)">→</button>
             </div>
-          </div>
-          <div class="flow" #flow tabindex="0" aria-label="Production flow, from supplies to outputs">
-            @if (result.external.length) {
-              <div class="flow-lane">
-                <h3>External supplies</h3>
-                @for (material of result.external; track material.item) {
-                  <article class="flow-card" [class.active-card]="selectedStage === material.item">
-                    <button type="button" class="flow-main" (click)="view(material.item)">
-                      <strong class="material-label"><app-item-icon [item]="material.item" [atlas]="atlas" /> {{ itemName(material.item) }}</strong>
-                      <span>{{ material.rate | number: '1.0-2' }} {{ unit(material.item) }}/min</span>
-                    </button>
-                    @if (hasRecipes(material.item)) {
-                      <button type="button" class="stage-recipe-button" (click)="view(material.item, true)"
-                        [attr.aria-label]="'Choose recipe for ' + itemName(material.item)">Choose recipe</button>
-                    }
-                  </article>
-                }
-              </div>
-            }
-            @for (lane of lanes; track lane[0]) {
-              <div class="flow-lane">
-                <h3>Stage {{ lane[0] }}</h3>
-                @for (stage of lane[1]; track stage.item) {
-                  <article class="flow-card" [class.active-card]="selectedStage === stage.item">
-                    <button class="flow-main" type="button" (click)="view(stage.item)" [attr.aria-expanded]="selectedStage === stage.item">
-                      <strong class="material-label"><app-item-icon [item]="stage.item" [atlas]="atlas" /> {{ itemName(stage.item) }}</strong>
-                      <span>{{ stage.rate | number: '1.0-2' }} {{ unit(stage.item) }}/min</span>
-                      <small class="machine-label">
-                        @if (machineIcons[stage.recipe.machine]; as icon) {
-                          <img class="machine-icon" [src]="iconPath(icon)" alt="">
-                        }
-                        {{ stage.recipe.farm?.method ?? machines[stage.recipe.machine].label }}
-                      </small>
-                    </button>
-                    <button type="button" class="stage-recipe-button" (click)="view(stage.item, true)"
-                      [attr.aria-label]="'Choose recipe for ' + itemName(stage.item)">Choose recipe</button>
-                    @if (stage.input.length) {
-                      <ul class="flow-inputs">
-                        @for (material of stage.input; track material.key) {
-                          <li><button class="link-button material-label" type="button" (click)="view(material.item, true)">
-                            <app-item-icon [item]="material.item" [atlas]="atlas" />
-                            <span>← {{ itemName(material.item) }} · {{ material.rate | number: '1.0-2' }} {{ unit(material.item) }}/min</span>
-                          </button></li>
-                        }
-                      </ul>
-                    }
-                  </article>
-                }
-              </div>
-            }
-          </div>
+            <div class="flow" #flow tabindex="0" aria-label="Production flow, from supplies to outputs">
+              @if (result.external.length) {
+                <div class="flow-lane">
+                  <h3>External supplies</h3>
+                  @for (material of result.external; track material.item) {
+                    <article class="flow-card" [class.active-card]="selectedStage === material.item">
+                      <button type="button" class="flow-main" (click)="view(material.item)">
+                        <strong class="material-label"><app-item-icon [item]="material.item" [atlas]="atlas" /> {{ itemName(material.item) }}</strong>
+                        <span>{{ material.rate | number: '1.0-2' }} {{ unit(material.item) }}/min</span>
+                      </button>
+                      @if (hasRecipes(material.item)) {
+                        <button type="button" class="stage-recipe-button" (click)="view(material.item, true)"
+                          [attr.aria-label]="'Choose recipe for ' + itemName(material.item)">Choose recipe</button>
+                      }
+                    </article>
+                  }
+                </div>
+              }
+              @for (lane of lanes; track lane[0]) {
+                <div class="flow-lane">
+                  <h3>Stage {{ lane[0] }}</h3>
+                  @for (stage of lane[1]; track stage.item) {
+                    <article class="flow-card" [class.active-card]="selectedStage === stage.item">
+                      <button class="flow-main" type="button" (click)="view(stage.item)" [attr.aria-expanded]="selectedStage === stage.item">
+                        <strong class="material-label"><app-item-icon [item]="stage.item" [atlas]="atlas" /> {{ itemName(stage.item) }}</strong>
+                        <span>{{ stage.rate | number: '1.0-2' }} {{ unit(stage.item) }}/min</span>
+                        <small class="machine-label">
+                          @if (machineIcons[stage.recipe.machine]; as icon) {
+                            <img class="machine-icon" [src]="iconPath(icon)" alt="">
+                          }
+                          @if (stage.recipe.farm) {
+                            <app-item-icon [item]="stage.recipe.farm.equipment[0]" [atlas]="atlas" />
+                          } @else if (stage.recipe.bottomless) {
+                            <app-item-icon item="create:hose_pulley" [atlas]="atlas" />
+                          }
+                          {{ stage.recipe.farm?.method ?? (stage.recipe.generator ? 'Block generator' : machines[stage.recipe.machine].label) }}
+                        </small>
+                      </button>
+                      <button type="button" class="stage-recipe-button" (click)="view(stage.item, true)"
+                        [attr.aria-label]="'Choose recipe for ' + itemName(stage.item)">Choose recipe</button>
+                      @if (stage.input.length) {
+                        <ul class="flow-inputs">
+                          @for (material of stage.input; track material.key) {
+                            <li><button class="link-button material-label" type="button" (click)="view(material.item, true)">
+                              <app-item-icon [item]="material.item" [atlas]="atlas" />
+                              <span>← {{ itemName(material.item) }} · {{ material.rate | number: '1.0-2' }} {{ unit(material.item) }}/min</span>
+                            </button></li>
+                          }
+                        </ul>
+                      }
+                    </article>
+                  }
+                </div>
+              }
+            </div>
+          }
         </section>
 
         @if (selectedStage) {
@@ -174,7 +179,11 @@
               <div>
                 <h2 class="material-label"><app-item-icon [item]="selectedStage" [atlas]="atlas" /> {{ itemName(selectedStage) }}</h2>
                 @if (visibleStage; as stage) {
-                  <p>{{ stage.crafts | number: '1.0-2' }} {{ stage.farm ? 'harvests' : 'operations' }}/min · {{ stage.rate | number: '1.0-2' }} {{ unit(stage.item) }}/min expected</p>
+                  @if (stage.recipe.bottomless) {
+                    <p>{{ stage.rate | number: '1.0-2' }} mB/min required</p>
+                  } @else {
+                    <p>{{ stage.crafts | number: '1.0-2' }} {{ stage.farm ? 'harvests' : 'operations' }}/min · {{ stage.rate | number: '1.0-2' }} {{ unit(stage.item) }}/min expected</p>
+                  }
                 }
               </div>
               <button type="button" class="tool-button" (click)="selectedStage = ''">Close</button>
@@ -209,25 +218,19 @@
             </div>
             @if (visibleStage; as stage) {
               @if (stage.farm; as farm) {
-                <div class="tool-fields farm-fields">
-                  <label>Minutes per harvest
-                    <input type="number" min=".001" max="1440" step="any" [ngModel]="farm.minutes"
-                      (ngModelChange)="setFarmSetting(stage.recipe.id, 'minutes', $event)">
-                  </label>
-                  <label>{{ itemName(stage.recipe.outputs[0].item) }} per harvest
-                    <input type="number" min=".001" max="1000" step="any" [ngModel]="farm.yield"
-                      (ngModelChange)="setFarmSetting(stage.recipe.id, 'yield', $event)">
-                  </label>
-                  <label>Installed plots
-                    <input type="number" min="0" max="1000000" placeholder="Auto" [ngModel]="settings.farms?.[stage.recipe.id]?.plots ?? null"
-                      (ngModelChange)="setFarmSetting(stage.recipe.id, 'plots', $event)">
-                  </label>
-                </div>
                 <p>
                   {{ farm.installed | number }} plots planned · {{ farm.needed | number: '1.0-2' }} needed ·
                   {{ farm.ratePerPlot | number: '1.0-4' }} {{ unit(stage.item) }}/min per plot.
                 </p>
                 <p>{{ stage.recipe.farm?.setup }}</p>
+                <div><a class="tool-button" [routerLink]="['/farms', sourceId(stage.recipe)]">Farm setup and rates</a></div>
+              } @else if (stage.recipe.bottomless) {
+                <p>Lower a Hose Pulley into a connected body of at least {{ bottomlessThreshold | number }} fluid blocks
+                  under Create's default threshold. The fluid is not consumed. Size the pumps and pipes for the demand shown above.</p>
+                @if (stage.recipe.bottomless === 'configured') {
+                  <p>Enable this fluid in the server's bottomless fluid configuration or datapack tag.</p>
+                }
+                <div><a class="tool-button" routerLink="/pump">Pump calculator</a></div>
               } @else if (stage.equipment.length) {
                 <div class="table-scroll">
                   <table>
@@ -254,6 +257,22 @@
                 </div>
               } @else {
                 <p>Manual production or an external crafting station. Budget {{ stage.crafts | number: '1.0-2' }} operations per minute.</p>
+              }
+              @if (stage.recipe.generator; as source) {
+                <p>{{ generatorCollection(source) }}</p>
+                <div><a class="tool-button" [routerLink]="['/farms', sourceId(stage.recipe)]">Generator setup and rates</a></div>
+              }
+              @if (settings.view === 'graph' && stage.input.length) {
+                <div>
+                  <h3>Inputs per minute</h3>
+                  <ul class="materials">
+                    @for (input of stage.input; track input.key) {
+                      <li><button class="link-button material-label" type="button" (click)="view(input.item, true)">
+                        <app-item-icon [item]="input.item" [atlas]="atlas" /> {{ itemName(input.item) }}
+                      </button><strong>{{ input.rate | number: '1.0-2' }} {{ unit(input.item) }}</strong></li>
+                    }
+                  </ul>
+                </div>
               }
               @if (!stage.farm && stage.recipe.outputs.length > 1) {
                 <div>

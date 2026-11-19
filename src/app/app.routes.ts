@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { GENERATOR_TABS, PLANNER_TAB, WORKSHOP_TABS } from './create/calculator-tabs';
+import { FARMS_TAB, GENERATOR_TABS, PLANNER_TAB, WORKSHOP_TABS } from './create/calculator-tabs';
 import { ArmCalculatorComponent } from './calculator/arm-calculator/arm-calculator.component';
 import { BeltCalculatorComponent } from './calculator/belt-calculator/belt-calculator.component';
 import { CrafterCalculatorComponent } from './calculator/crafter-calculator/crafter-calculator.component';
@@ -16,9 +16,13 @@ import { SawCalculatorComponent } from './calculator/saw-calculator/saw-calculat
 const workshop = () => import('./create/workshop.component').then(module => module.WorkshopComponent);
 const generatorCalculator = () => import('./create/generator-calculator.component').then(module => module.GeneratorCalculatorComponent);
 
+const resourceSources = () => import('./create/resource-sources.component').then(module => module.ResourceSourcesComponent);
+
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: PLANNER_TAB.id },
   { path: PLANNER_TAB.id, loadComponent: () => import('./planner/planner.component').then(module => module.PlannerComponent) },
+  { path: FARMS_TAB.id, pathMatch: 'full', redirectTo: FARMS_TAB.id + '/cobblestone' },
+  { path: FARMS_TAB.id + '/:source', loadComponent: resourceSources },
   { path: 'generators', pathMatch: 'full', redirectTo: GENERATOR_TABS[0].id },
   ...GENERATOR_TABS.map(({ id, generator }) => ({
     path: id, loadComponent: generatorCalculator, data: { generator },

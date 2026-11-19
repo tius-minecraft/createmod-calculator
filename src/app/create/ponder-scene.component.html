@@ -1,0 +1,20 @@
+<figure class="ponder">
+  <div class="scene-stage">
+    <canvas #canvas [attr.width]="width" [attr.height]="height" aria-hidden="true"></canvas>
+  </div>
+  <figcaption>
+    <div class="ponder-controls" aria-label="Animated guide controls">
+      <button class="tool-button" type="button" (click)="togglePlayback()">{{ playing ? 'Pause' : 'Play' }}</button>
+      @for (entry of steps; track $index) {
+        <button class="tool-button step" type="button" [attr.aria-label]="entry.title"
+          [attr.aria-pressed]="step === $index" (click)="show($index)">{{ $index + 1 }}</button>
+      }
+    </div>
+    @if (steps[step]; as current) {
+      <div class="scene-caption" [attr.aria-live]="playing ? 'off' : 'polite'">
+        <strong>{{ current.title }}</strong>
+        <p>{{ current.text }}</p>
+      </div>
+    }
+  </figcaption>
+</figure>

@@ -1,0 +1,40 @@
+@if (nodes.length) {
+  <div class="graph-tools" aria-label="Graph zoom">
+    <button type="button" class="tool-button" aria-label="Zoom out" [disabled]="zoom <= .6"
+      (click)="zoom = zoom === 1 ? .8 : .6">−</button>
+    <span>{{ zoom * 100 | number }}%</span>
+    <button type="button" class="tool-button" aria-label="Zoom in" [disabled]="zoom >= 1"
+      (click)="zoom = zoom === .6 ? .8 : 1">+</button>
+  </div>
+  <div class="graph-viewport" tabindex="0" aria-label="Production graph, scroll to explore">
+    <div class="graph-plane" [style.width.px]="width" [style.height.px]="height" [style.zoom]="zoom">
+      <svg class="graph-edges" [attr.width]="width" [attr.height]="height" aria-label="Material connections">
+        <defs>
+          <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#9692a6" />
+          </marker>
+          <marker id="selected-flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#efba70" />
+          </marker>
+        </defs>
+        @for (edge of edges; track edge.id) {
+          <path [attr.d]="edge.path" [class.selected-edge]="selected === edge.from.item || selected === edge.to.item"
+            [attr.marker-end]="selected === edge.from.item || selected === edge.to.item ? 'url(#selected-flow-arrow)' : 'url(#flow-arrow)'">
+            <title>{{ name(edge.from.item) }} → {{ name(edge.to.item) }} · {{ edge.rate | number: '1.0-2' }} {{ unit(edge.from.item) }}/min</title>
+          </path>
+        }
+      </svg>
+      @for (node of nodes; track node.id) {
+        <button type="button" class="flow-card graph-node" [class.graph-target]="node.id.startsWith('target/')"
+          [class.active-card]="selected === node.item" [style.width.px]="nodeWidth" [style.left.px]="node.x"
+          [style.top.px]="node.y" (click)="selectMaterial.emit(node.item)">
+          <strong class="material-label"><app-item-icon [item]="node.item" [atlas]="atlas" /> {{ name(node.item) }}</strong>
+          <span>{{ node.rate | number: '1.0-2' }} {{ unit(node.item) }}/min</span>
+          <small>{{ node.label }}</small>
+        </button>
+      }
+    </div>
+  </div>
+} @else {
+  <p>Set a positive target rate to see material connections.</p>
+}

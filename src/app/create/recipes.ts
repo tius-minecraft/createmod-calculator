@@ -3,6 +3,7 @@ import {
   mixerTicks, OPERATIONS_PER_MINUTE, optimizedDrillTicks, pressTicks, sawTicks, SPOUT_TICKS
 } from './kinetics';
 import { FARM_RECIPES, type FarmProfile } from './farm-recipes';
+import { BLOCK_GENERATORS, BOTTOMLESS_SUPPLIES, generatorTicks, type BlockGenerator } from './resource-sources';
 
 export const MACHINES = {
   drill: { label: 'Mechanical Drill', stress: 4 },
@@ -21,6 +22,7 @@ export const MACHINES = {
   fan_blasting: { label: 'Fan · bulk blasting', stress: 2 },
   fan_smoking: { label: 'Fan · bulk smoking', stress: 2 },
   farm: { label: 'Farm', stress: 0 },
+  bottomless: { label: 'Hose Pulley · bottomless supply', stress: 0 },
   furnace: { label: 'Furnace', stress: 0 },
   blasting: { label: 'Blast Furnace', stress: 0 },
   smoking: { label: 'Smoker', stress: 0 },
@@ -32,7 +34,7 @@ export const MACHINES = {
 } satisfies Record<string, { label: string; stress: number }>;
 
 export type Machine = keyof typeof MACHINES;
-export type TimedMachine = Exclude<Machine, 'manual' | 'stonecutter' | 'polishing' | 'sequence' | 'farm'>;
+export type TimedMachine = Exclude<Machine, 'manual' | 'stonecutter' | 'polishing' | 'sequence' | 'farm' | 'bottomless'>;
 
 export interface Ingredient {
   choices: string[];
@@ -63,6 +65,8 @@ export interface Recipe {
   sequence?: RecipeStep[];
   tools?: Ingredient[];
   farm?: FarmProfile;
+  generator?: BlockGenerator;
+  bottomless?: 'default' | 'configured';
 }
 
 export interface MachineSettings {
@@ -76,13 +80,6 @@ export interface MachineWork {
   ticks: number;
   units: number;
 }
-
-const COBBLESTONE: Recipe = {
-  id: 'planner:optimized_cobblestone_generator',
-  machine: 'drill',
-  inputs: [],
-  outputs: [{ item: 'minecraft:cobblestone', amount: 1, chance: 1 }],
-};
 
 export function itemName(id: string): string {
   if (id.startsWith('fluid:')) {
@@ -103,7 +100,9 @@ export function materialUnit(item: string, amount?: number): string {
 }
 
 export function recipeName(recipe: Recipe): string {
-  if (recipe === COBBLESTONE) return 'Drill · optimized cobblestone generator';
+  if (recipe.generator) return itemName(recipe.outputs[0].item) + ' generator · Mechanical Drill';
+  if (recipe.bottomless) return MACHINES.bottomless.label
+    + (recipe.bottomless === 'configured' ? ' (server config)' : '');
   if (recipe.farm) return itemName(recipe.id.split('/').at(-1)!) + ' · ' + recipe.farm.method;
   const name = itemName(recipe.id.slice(recipe.id.lastIndexOf('/') + 1));
   return MACHINES[recipe.machine].label + ' · ' + name;
@@ -112,12 +111,11 @@ export function recipeName(recipe: Recipe): string {
 export class RecipeCatalog {
   readonly recipes: Recipe[];
   readonly sequences: Recipe[];
-  readonly farms = FARM_RECIPES;
   readonly items: string[];
   private readonly byOutput = new Map<string, Recipe[]>();
 
   constructor(recipes: Recipe[]) {
-    this.recipes = [COBBLESTONE, ...FARM_RECIPES, ...recipes];
+    this.recipes = [...BLOCK_GENERATORS, ...FARM_RECIPES, ...BOTTOMLESS_SUPPLIES, ...recipes];
     this.sequences = recipes.filter(recipe => recipe.machine === 'sequence');
     const items = new Set<string>();
     for (const recipe of this.recipes) {
@@ -162,7 +160,7 @@ export function recipeWork(recipe: Recipe, settings: MachineSettings): MachineWo
       units: 1,
     }));
   }
-  if (recipe.machine === 'manual' || recipe.machine === 'polishing' || recipe.machine === 'stonecutter' || recipe.machine === 'sequence' || recipe.machine === 'farm') {
+  if (recipe.machine === 'manual' || recipe.machine === 'polishing' || recipe.machine === 'stonecutter' || recipe.machine === 'sequence' || recipe.machine === 'farm' || recipe.machine === 'bottomless') {
     return [];
   }
 
@@ -172,7 +170,8 @@ export function recipeWork(recipe: Recipe, settings: MachineSettings): MachineWo
   const batch = batched ? settings.batch : 1;
   const ticks = recipe.machine === 'crafter'
     ? crafterTicks(settings.rpm, recipe.pathLength ?? 1)
-    : stepTicks(recipe.machine, recipe.ticks ?? 0, settings, batch);
+    : recipe.generator ? generatorTicks(recipe.generator, settings.rpm)
+      : stepTicks(recipe.machine, recipe.ticks ?? 0, settings, batch);
   return [{ machine: recipe.machine, ticks: ticks / batch, units: recipe.slots ?? 1 }];
 }
 

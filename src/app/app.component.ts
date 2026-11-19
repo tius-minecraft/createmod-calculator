@@ -3,7 +3,7 @@ import { ActivationStart, Router, RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './header/header.component';
 import { CalculatorService } from './calculator/calculator.service';
 import { TooltipDirective } from './tooltip';
-import { PLANNER_TAB } from './create/calculator-tabs';
+import { FARMS_TAB, PLANNER_TAB } from './create/calculator-tabs';
 
 @Component({
   selector: 'app-root',
@@ -13,7 +13,7 @@ import { PLANNER_TAB } from './create/calculator-tabs';
   styleUrl: './app.component.css',
 })
 export class AppComponent {
-  readonly plannerId = PLANNER_TAB.id;
+  readonly wideTabs = [PLANNER_TAB.id, FARMS_TAB.id];
   private readonly calculatorService = inject(CalculatorService);
   private readonly router = inject(Router);
 

@@ -9,7 +9,7 @@
       }
     </h1>
   }
-  <div class="calculator" [class.planner-route]="calculator.id === plannerId">
+  <div class="calculator" [class.planner-route]="wideTabs.includes(calculator.id)">
     @for (tab of [calculator]; track tab.id) {
       <img class="background-img" [src]="tab.iconPath" alt="">
     }

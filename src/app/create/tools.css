@@ -323,4 +323,9 @@ ul.materials { list-style: none; }
 }
 .stage-recipe-button:hover, .stage-recipe-button:focus-visible { background: #24232f; }
 
-.planner .farm-selector { flex: 0 1 190px; min-width: 0; }
+
+.view-switch .tool-button[aria-pressed="true"] {
+  background: #27232f;
+  border-image: var(--primaryHoverGradient) 1;
+}
+.flow-controls { justify-content: flex-end; }

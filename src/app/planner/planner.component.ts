@@ -6,10 +6,12 @@ import { DEFAULT_MAX_RPM, GENERATORS } from '../create/kinetics';
 import { itemName, loadCatalog, MACHINES, materialUnit, type Recipe, RecipeCatalog, recipeName } from '../create/recipes';
 import { MACHINE_ICONS, iconPath } from '../create/tool-icons';
 import { generatorRoute, type GeneratorId } from '../create/calculator-tabs';
-import { automaticRecipe, buildPlan, type FarmSettings, Plan, PlanStage, PlannerSettings, Goal } from './production-plan';
+import { automaticRecipe, buildPlan, Plan, PlanStage, PlannerSettings, Goal } from './production-plan';
+import { readPlannerSettings, savePlannerSettings } from './planner-settings';
+import { PlanGraphComponent } from './plan-graph.component';
+import { DEFAULT_BOTTOMLESS_THRESHOLD, generatorCollection, resourceSourceId } from '../create/resource-sources';
 import { ItemIconComponent, loadItemAtlas, type ItemAtlas } from './item-icon.component';
 
-const STORAGE_KEY = 'create-6.0.10.factory';
 interface PlanExample extends Goal {
   title?: string;
   recipes?: Record<string, string>;
@@ -31,7 +33,7 @@ const EXAMPLES: PlanExample[] = [
 
 @Component({
   standalone: true,
-  imports: [FormsModule, DecimalPipe, PercentPipe, RouterLink, ItemIconComponent],
+  imports: [FormsModule, DecimalPipe, PercentPipe, RouterLink, ItemIconComponent, PlanGraphComponent],
   templateUrl: './planner.component.html',
 })
 export class PlannerComponent implements OnInit {
@@ -44,7 +46,10 @@ export class PlannerComponent implements OnInit {
   readonly iconPath = iconPath;
   readonly examples = EXAMPLES;
   readonly generatorTypes = GENERATORS;
-  settings = this.restore();
+  readonly bottomlessThreshold = DEFAULT_BOTTOMLESS_THRESHOLD;
+  readonly generatorCollection = generatorCollection;
+  readonly sourceId = resourceSourceId;
+  settings = readPlannerSettings();
   catalog?: RecipeCatalog;
   atlas?: ItemAtlas;
   plan?: Plan;
@@ -130,12 +135,9 @@ export class PlannerComponent implements OnInit {
     this.update();
   }
 
-  addFarm(id: string) {
-    const recipe = this.catalog?.farms.find(farm => farm.id === id);
-    if (!recipe) return;
-    const item = recipe.outputs[0].item;
-    this.settings.recipes[item] = recipe.id;
-    this.addGoal(item, 2);
+  setView(view: 'flow' | 'graph') {
+    this.settings.view = view;
+    savePlannerSettings(this.settings);
   }
 
   useExample(example: PlanExample) {
@@ -202,25 +204,13 @@ export class PlannerComponent implements OnInit {
     return [...groups].sort(([a], [b]) => a.localeCompare(b));
   }
 
-  setFarmSetting(recipeId: string, key: keyof FarmSettings, value: number | null) {
-    const farms = this.settings.farms ??= {};
-    const configuration = farms[recipeId] ??= {};
-    if (value === null) {
-      delete configuration[key];
-    } else if (key === 'plots') {
-      configuration.plots = Math.trunc(this.bounded(value, 0, 1_000_000));
-    } else {
-      configuration[key] = this.bounded(value, .001, key === 'minutes' ? 1440 : 1000);
-    }
-    this.update();
-  }
-
   exportCsv() {
     if (!this.plan) return;
     const rows = [['Type', 'Material', 'Unit', 'Per minute', 'Recipe or machine', 'Machine units', 'Stress (SU)']];
     for (const section of this.plan.stages) {
       const material = section.item;
-      rows.push(['Production', material, this.unit(material), String(section.rate), section.recipe.id, '', '']);
+      rows.push([section.recipe.bottomless ? 'Bottomless supply' : 'Production',
+        material, this.unit(material), String(section.rate), section.recipe.id, '', '']);
       for (const input of section.input) {
         rows.push(['Ingredient', input.item, this.unit(input.item), String(input.rate), section.recipe.id, '', '']);
       }
@@ -256,24 +246,7 @@ export class PlannerComponent implements OnInit {
         this.selectedStage = '';
       }
     }
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
-    } catch {
-      // The planner also works for browsers with storage disabled.
-    }
-  }
-
-  private restore(): PlannerSettings {
-    const defaults: PlannerSettings = {
-      goals: [{ ...EXAMPLES[0] }], rpm: 256, beltRpm: 128, batch: 16, recipes: {}, ingredients: {}, limits: {},
-    };
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as PlannerSettings | null;
-      if (saved && Array.isArray(saved.goals)) return { ...defaults, ...saved };
-    } catch {
-      return defaults;
-    }
-    return defaults;
+    savePlannerSettings(this.settings);
   }
 
   private bounded(value: number | null, min: number, max: number) {
