@@ -48,3 +48,7 @@ python3 scripts/import-recipes.py /path/to/Create minecraft-data.jar
 ```
 
 The app retains its [GPL-3.0 license](LICENSE). Create recipe data is derived from the [Create source catalog](https://github.com/Creators-of-Create/Create/tree/mc1.21.1-6.0.10/src/generated/resources/data/create/recipe), with the [Create MIT notice](LICENSE.create).
+
+### Interface imagery
+
+Create illustrations for the new controls come from the Create Wiki on MC-WIKI.net. [Packager](https://mc-wiki.net/create/packager/), [Spout](https://mc-wiki.net/create/spout/), [Precision Mechanism](https://mc-wiki.net/create/precision-mechanism/), [Brass Funnel](https://mc-wiki.net/create/brass-funnel/), [Andesite Funnel](https://mc-wiki.net/create/andesite-funnel/), [Item Drain](https://mc-wiki.net/create/item-drain/), [Windmill Bearing](https://mc-wiki.net/create/windmill-bearing/), [Steam Engine](https://mc-wiki.net/create/steam-engine/), [Hand Crank](https://mc-wiki.net/create/hand-crank/), and [Creative Motor](https://mc-wiki.net/create/creative-motor/).

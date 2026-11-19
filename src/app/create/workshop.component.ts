@@ -6,6 +6,7 @@ import {
   CREATE_SOURCE, DRAIN_TICKS, funnelTicks, GENERATORS, OPERATIONS_PER_MINUTE, PACKAGER_MODES,
   packagerPayload, SPOUT_TICKS, steamPower, TICKS_PER_SECOND, windmillPower,
 } from './kinetics';
+import { GENERATOR_ICONS, MACHINE_ICONS, iconPath } from './tool-icons';
 import { itemName, loadCatalog, MACHINES, materialUnit, Recipe, sequenceRates } from './recipes';
 
 @Component({
@@ -17,6 +18,9 @@ export class WorkshopComponent implements OnInit {
   readonly tool = inject(ActivatedRoute).snapshot.data['tool'] as string;
   readonly source = CREATE_SOURCE;
   readonly generators = GENERATORS;
+  readonly generatorIcons = GENERATOR_ICONS;
+  readonly machineIcons = MACHINE_ICONS;
+  readonly iconPath = iconPath;
   readonly packagerModes = PACKAGER_MODES;
   readonly machines = MACHINES;
   readonly itemName = itemName;

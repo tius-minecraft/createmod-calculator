@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DEFAULT_MAX_RPM, GENERATORS } from '../create/kinetics';
 import { itemName, loadCatalog, MACHINES, materialUnit, RecipeCatalog, recipeName } from '../create/recipes';
+import { MACHINE_ICONS, iconPath } from '../create/tool-icons';
 import { buildPlan, Plan, PlanStage, PlannerSettings, Goal, selectRecipe } from './production-plan';
 
 const STORAGE_KEY = 'create-6.0.10.factory';
@@ -25,6 +26,8 @@ export class PlannerComponent implements OnInit {
   readonly unit = materialUnit;
   readonly Infinity = Number.POSITIVE_INFINITY;
   readonly machines = MACHINES;
+  readonly machineIcons = MACHINE_ICONS;
+  readonly iconPath = iconPath;
   readonly examples = EXAMPLES;
   readonly generatorTypes = GENERATORS;
   settings = this.restore();

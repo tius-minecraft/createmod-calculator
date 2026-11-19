@@ -4,6 +4,7 @@ import { ActivationStart, Router, RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './header/header.component';
 import { CalculatorService } from './calculator/calculator.service';
 import { TooltipDirective } from './tooltip';
+import { FACTORY_TABS, iconPath } from './create/tool-icons';
 
 @Component({
   selector: 'app-root',
@@ -14,7 +15,8 @@ import { TooltipDirective } from './tooltip';
 })
 export class AppComponent {
   isWorkshop = false;
-  switchTabAnimation: boolean = false;
+  switchTabAnimation = false;
+  workshopIcon?: string;
   private calculatorService = inject(CalculatorService);
   private router = inject(Router);
 
@@ -23,7 +25,9 @@ export class AppComponent {
       if(val instanceof ActivationStart) {
         const id = val.snapshot.url[0]?.path;
         if (!id) return;
-        this.isWorkshop = !this.calculatorService.getCalculator(id);
+        const factoryTool = FACTORY_TABS.find(tool => tool.id === id);
+        this.isWorkshop = factoryTool !== undefined;
+        this.workshopIcon = factoryTool && iconPath(factoryTool.icon);
         if (!this.isWorkshop) {
           this.calculatorService.setSelectedCalculator(id);
           this.onCalculatorChanged();

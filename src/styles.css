@@ -101,4 +101,4 @@ router-outlet+* {
   left: 50%;
   transform: translate(-50%, -5px);
 }
-.calculator.workshop-route > router-outlet + * { max-width: 1140px; min-width: 0; }
+.calculator.workshop-route > router-outlet + * { max-width: 1080px; min-width: 0; }

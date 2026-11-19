@@ -1,9 +1,6 @@
 <main class="workbench planner">
   <div class="tool-heading">
-    <div>
-      <h1>Factory planner</h1>
-      <p>Work back from your production targets to recipes, machines and raw materials.</p>
-    </div>
+    <h1>Factory planner</h1>
     <button type="button" class="tool-button" (click)="exportCsv()" [disabled]="!plan || !settings.goals.length">Download CSV</button>
   </div>
 
@@ -70,7 +67,7 @@
       @if (settings.goals.length) {
         <div class="tool-metrics">
           <div><span>Production blocks</span><strong>{{ result.blocks | number }}</strong></div>
-          <div><span>Installed kinetic load</span><strong>{{ result.stress | number }} <small>SU</small></strong></div>
+          <div class="stress-metric"><span>Installed kinetic load</span><strong>{{ result.stress | number }} <small>SU</small></strong></div>
           <div><span>Supplied materials</span><strong>{{ result.external.length | number }}</strong></div>
           <div [class.metric-alert]="result.capacity < 1"><span>Target capacity</span><strong>{{ result.capacity | percent: '1.0-1' }}</strong></div>
         </div>
@@ -123,7 +120,12 @@
                     <button class="flow-main" type="button" (click)="view(stage.item)" [attr.aria-expanded]="selectedStage === stage.item">
                       <strong>{{ itemName(stage.item) }}</strong>
                       <span>{{ stage.rate | number: '1.0-2' }} {{ unit(stage.item) }}/min</span>
-                      <small>{{ machines[stage.recipe.machine].label }}</small>
+                      <small class="machine-label">
+                        @if (machineIcons[stage.recipe.machine]; as icon) {
+                          <img class="machine-icon" [src]="iconPath(icon)" alt="">
+                        }
+                        {{ machines[stage.recipe.machine].label }}
+                      </small>
                     </button>
                     @if (stage.input.length) {
                       <ul class="flow-inputs">
@@ -182,7 +184,12 @@
                     <tbody>
                       @for (machine of stage.equipment; track machine.machine) {
                         <tr>
-                          <th scope="row">{{ machines[machine.machine].label }}</th>
+                          <th scope="row"><span class="machine-label">
+                            @if (machineIcons[machine.machine]; as icon) {
+                              <img class="machine-icon" [src]="iconPath(icon)" alt="">
+                            }
+                            {{ machines[machine.machine].label }}
+                          </span></th>
                           <td>{{ machine.needed === Infinity ? 'Stopped' : (machine.needed | number: '1.0-2') }}</td>
                           <td><input type="number" min="0" max="1000000" placeholder="Auto" [ngModel]="settings.limits[stage.item + '/' + machine.machine] ?? null"
                             [attr.aria-label]="'Installed ' + machines[machine.machine].label"

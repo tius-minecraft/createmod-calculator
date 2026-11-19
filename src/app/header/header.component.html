@@ -1,18 +1,16 @@
-<nav class="tool-nav" aria-label="Factory tools">
-  <span class="app-brand">Create Calculator <small>{{ version }}</small></span>
-  <div class="tool-links">
-    <a routerLink="/planner" routerLinkActive="selected" ariaCurrentWhenActive="page">Planner</a>
-    <a routerLink="/generators" routerLinkActive="selected" ariaCurrentWhenActive="page">Generators</a>
-    <a routerLink="/packager" routerLinkActive="selected" ariaCurrentWhenActive="page">Packager</a>
-    <a routerLink="/spout" routerLinkActive="selected" ariaCurrentWhenActive="page">Spout</a>
-    <a routerLink="/sequence" routerLinkActive="selected" ariaCurrentWhenActive="page">Assembly</a>
-    <a routerLink="/logistics" routerLinkActive="selected" ariaCurrentWhenActive="page">Logistics</a>
-  </div>
-</nav>
 <nav class="header" aria-label="Machine calculators">
   @for (calculator of calculatorsData; track calculator.id) {
-    <button class="tab" [routerLink]="['/', calculator.id]" routerLinkActive="selected" ariaCurrentWhenActive="page" [tooltip]="calculator.name">
-      <img [src]="calculator.iconPath" [alt]="calculator.name" class="tab-image" />
+    <button type="button" class="tab" [routerLink]="['/', calculator.id]" routerLinkActive="selected"
+      ariaCurrentWhenActive="page" [tooltip]="calculator.name">
+      <img [src]="calculator.iconPath" [alt]="calculator.name">
     </button>
+  }
+</nav>
+<nav class="tool-header" aria-label="Factory tools">
+  @for (tool of factoryTabs; track tool.id) {
+    <a class="tool-tile" [routerLink]="['/', tool.id]" routerLinkActive="selected" ariaCurrentWhenActive="page">
+      <span class="tab" aria-hidden="true"><img [src]="iconPath(tool.icon)" alt=""></span>
+      <span class="tile-label">{{ tool.label }}</span>
+    </a>
   }
 </nav>

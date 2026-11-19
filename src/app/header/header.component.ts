@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { g_calculatorsData } from '../calculator/constants';
-import { CREATE_VERSION } from '../create/kinetics';
+import { FACTORY_TABS, iconPath } from '../create/tool-icons';
 import { TooltipDirective } from '../tooltip';
 
 @Component({
@@ -12,7 +12,8 @@ import { TooltipDirective } from '../tooltip';
   styleUrl: './header.component.css'
 })
 export class HeaderComponent {
-  readonly version = CREATE_VERSION;
+  readonly factoryTabs = FACTORY_TABS;
+  readonly iconPath = iconPath;
   get calculatorsData() {
     return g_calculatorsData;
   }

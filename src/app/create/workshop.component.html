@@ -1,7 +1,7 @@
 <main class="workbench workshop">
   @switch (tool) {
     @case ('generators') {
-      <div class="tool-heading"><div><h1>Rotation &amp; stress</h1><p>Generator output in Create 6.0.10 under default stress settings.</p></div><a class="tool-button" routerLink="/planner">Factory planner</a></div>
+      <div class="tool-heading"><h1>Rotation &amp; stress</h1><a class="tool-button" routerLink="/planner">Factory planner</a></div>
       <section class="tool-panel">
         <div class="table-scroll">
           <table>
@@ -9,7 +9,14 @@
             <tbody>
               @for (generator of generators; track generator.id) {
                 <tr>
-                  <th scope="row">{{ generator.label }}</th>
+                  <th scope="row">
+                    <span class="machine-label">
+                      @if (generatorIcons[generator.id]; as icon) {
+                        <img class="machine-icon" [src]="iconPath(icon)" alt="">
+                      }
+                      {{ generator.label }}
+                    </span>
+                  </th>
                   <td>{{ generator.id === 'windmill' ? windmill.rpm : generator.id === 'steam' ? steam.rpm : generator.id === 'creative' ? motorRpm : generator.rpm }}</td>
                   <td>{{ (generator.id === 'windmill' ? windmill.su : generator.id === 'steam' ? steam.su : generator.id === 'creative' ? motorRpm * 16384 : generator.su) | number: '1.0-1' }}</td>
                 </tr>
@@ -50,8 +57,8 @@
       </section>
     }
     @case ('packager') {
-      <div class="tool-heading"><div><h1>Packager</h1><p>Package and item throughput by operating mode.</p></div><a class="tool-button" routerLink="/logistics">Other logistics</a></div>
-      <section class="tool-panel">
+      <div class="tool-heading"><h1>Packager</h1><a class="tool-button" routerLink="/logistics">Other logistics</a></div>
+      <section class="tool-panel machine-input">
         <div class="tool-fields">
           <label>Operating mode
             <select [(ngModel)]="mode">
@@ -75,8 +82,8 @@
       <p class="tool-note">The tray animation takes 20 ticks. A queued box starts on the following tick. Individual pulses use the 40-tick button cooldown. Held redstone retries on the 11-tick lazy tick. These rates require immediate pickup or available destination storage.</p>
     }
     @case ('spout') {
-      <div class="tool-heading"><div><h1>Spout</h1><p>Size filling stations by recipe, fluid supply and target output.</p></div><a class="tool-button" routerLink="/sequence">Sequenced Assembly</a></div>
-      <section class="tool-panel">
+      <div class="tool-heading"><h1>Spout</h1><a class="tool-button" routerLink="/sequence">Sequenced Assembly</a></div>
+      <section class="tool-panel machine-input">
         <div class="tool-fields">
           <label>Fluid per fill (mB)<input type="number" min="1" max="1000" [ngModel]="fluidAmount" (ngModelChange)="fluidAmount = numeric($event, 1, 1000)"></label>
           <label>Supply per spout (mB/s)<input type="number" min="0" [ngModel]="supply" (ngModelChange)="supply = numeric($event, 0, 1000000)"></label>
@@ -93,9 +100,9 @@
       <p class="tool-note">Enter 0 for unlimited fluid supply. The spout starts at 20 on its timer and can start the next fill when the timer reaches −1. Belt spacing, tank delivery and output clearance affect throughput.</p>
     }
     @case ('sequence') {
-      <div class="tool-heading"><div><h1>Sequenced Assembly</h1><p>Compare processing time, line throughput and weighted recipe yields.</p></div><a class="tool-button" routerLink="/planner">Factory planner</a></div>
+      <div class="tool-heading"><h1>Sequenced Assembly</h1><a class="tool-button" routerLink="/planner">Factory planner</a></div>
       @if (sequence; as recipe) {
-        <section class="tool-panel">
+        <section class="tool-panel machine-input">
           <div class="tool-fields">
             <label for="assembly-recipe">Recipe
               <select id="assembly-recipe" [(ngModel)]="selectedSequence">
@@ -120,7 +127,12 @@
               <h2>One pass · repeat {{ recipe.loops }}×</h2>
               <ol class="materials">
                 @for (step of result.work; track $index) {
-                  <li><span>{{ machines[step.machine].label }}</span><strong>{{ step.ticks === Infinity ? 'Stopped' : (step.ticks / (recipe.loops || 1) | number) + ' ticks' }}</strong></li>
+                  <li><span class="machine-label">
+                    @if (machineIcons[step.machine]; as icon) {
+                      <img class="machine-icon" [src]="iconPath(icon)" alt="">
+                    }
+                    {{ machines[step.machine].label }}
+                  </span><strong>{{ step.ticks === Infinity ? 'Stopped' : (step.ticks / (recipe.loops || 1) | number) + ' ticks' }}</strong></li>
                 }
               </ol>
             </section>
@@ -154,8 +166,8 @@
       }
     }
     @case ('logistics') {
-      <div class="tool-heading"><div><h1>Logistics</h1><p>Compare the rate of common item transfers.</p></div><a class="tool-button" routerLink="/packager">Packager</a></div>
-      <section class="tool-panel">
+      <div class="tool-heading"><h1>Logistics</h1><a class="tool-button" routerLink="/packager">Packager</a></div>
+      <section class="tool-panel machine-input">
         <div class="tool-fields">
           <label>Items per extracted stack<input type="number" min="1" max="64" [ngModel]="stack" (ngModelChange)="stack = numeric($event, 1, 64)"></label>
           <label>Funnel timer setting (ticks)<input type="number" min="1" [ngModel]="extractionTimer" (ngModelChange)="extractionTimer = numeric($event, 1, 10000)"></label>
@@ -167,9 +179,9 @@
           <table>
             <thead><tr><th scope="col">Transfer</th><th scope="col">Ticks</th><th scope="col">Items/min</th></tr></thead>
             <tbody>
-              <tr><th scope="row">Andesite Funnel · extraction</th><td>{{ funnelCycle }}</td><td>{{ rate(funnelCycle) | number: '1.0-2' }}</td></tr>
-              <tr><th scope="row">Brass Funnel · extraction</th><td>{{ funnelCycle }}</td><td>{{ rate(funnelCycle) * stack | number: '1.0-2' }}</td></tr>
-              <tr><th scope="row">Item Drain · one container</th><td>{{ drainTicks }}</td><td>{{ rate(drainTicks) | number: '1.0-2' }}</td></tr>
+              <tr><th scope="row"><span class="machine-label"><img class="machine-icon" [src]="iconPath('andesite-funnel')" alt="">Andesite Funnel · extraction</span></th><td>{{ funnelCycle }}</td><td>{{ rate(funnelCycle) | number: '1.0-2' }}</td></tr>
+              <tr><th scope="row"><span class="machine-label"><img class="machine-icon" [src]="iconPath('brass-funnel')" alt="">Brass Funnel · extraction</span></th><td>{{ funnelCycle }}</td><td>{{ rate(funnelCycle) * stack | number: '1.0-2' }}</td></tr>
+              <tr><th scope="row"><span class="machine-label"><img class="machine-icon" [src]="iconPath('item-drain')" alt="">Item Drain · one container</span></th><td>{{ drainTicks }}</td><td>{{ rate(drainTicks) | number: '1.0-2' }}</td></tr>
             </tbody>
           </table>
         </div>
