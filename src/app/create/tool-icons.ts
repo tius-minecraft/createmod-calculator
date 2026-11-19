@@ -3,6 +3,7 @@ import type { Machine } from './recipes';
 export const MACHINE_ICONS: Partial<Record<Machine, string>> = {
   drill: 'drill',
   press: 'press',
+  compacting: 'press',
   mixer: 'mixer',
   millstone: 'millstone',
   crushing: 'crushing',
@@ -13,6 +14,8 @@ export const MACHINE_ICONS: Partial<Record<Machine, string>> = {
   drain: 'item-drain',
   splashing: 'fan',
   haunting: 'fan',
+  fan_blasting: 'fan',
+  fan_smoking: 'fan',
   sequence: 'precision-mechanism',
 };
 

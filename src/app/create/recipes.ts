@@ -2,10 +2,12 @@ import {
   crafterTicks, crushingTicks, deployerBeltTicks, DRAIN_TICKS, fanBeltTicks, millstoneTicks,
   mixerTicks, OPERATIONS_PER_MINUTE, optimizedDrillTicks, pressTicks, sawTicks, SPOUT_TICKS
 } from './kinetics';
+import { FARM_RECIPES, type FarmProfile } from './farm-recipes';
 
 export const MACHINES = {
   drill: { label: 'Mechanical Drill', stress: 4 },
   press: { label: 'Mechanical Press', stress: 8 },
+  compacting: { label: 'Mechanical Press + Basin', stress: 8 },
   mixer: { label: 'Mechanical Mixer', stress: 4 },
   millstone: { label: 'Millstone', stress: 4 },
   crushing: { label: 'Crushing Wheel pair', stress: 16 },
@@ -16,6 +18,9 @@ export const MACHINES = {
   drain: { label: 'Item Drain', stress: 0 },
   splashing: { label: 'Fan · washing', stress: 2 },
   haunting: { label: 'Fan · haunting', stress: 2 },
+  fan_blasting: { label: 'Fan · bulk blasting', stress: 2 },
+  fan_smoking: { label: 'Fan · bulk smoking', stress: 2 },
+  farm: { label: 'Farm', stress: 0 },
   furnace: { label: 'Furnace', stress: 0 },
   blasting: { label: 'Blast Furnace', stress: 0 },
   smoking: { label: 'Smoker', stress: 0 },
@@ -27,7 +32,7 @@ export const MACHINES = {
 } satisfies Record<string, { label: string; stress: number }>;
 
 export type Machine = keyof typeof MACHINES;
-export type TimedMachine = Exclude<Machine, 'manual' | 'stonecutter' | 'polishing' | 'sequence'>;
+export type TimedMachine = Exclude<Machine, 'manual' | 'stonecutter' | 'polishing' | 'sequence' | 'farm'>;
 
 export interface Ingredient {
   choices: string[];
@@ -57,6 +62,7 @@ export interface Recipe {
   loops?: number;
   sequence?: RecipeStep[];
   tools?: Ingredient[];
+  farm?: FarmProfile;
 }
 
 export interface MachineSettings {
@@ -91,12 +97,14 @@ export function itemName(id: string): string {
   return id.split(':').at(-1)!.replace(/(^|[_/])([a-z])/g, (_, space, letter) => (space ? ' ' : '') + letter.toUpperCase());
 }
 
-export function materialUnit(item: string): string {
-  return item.startsWith('fluid:') ? 'mB' : 'items';
+export function materialUnit(item: string, amount?: number): string {
+  if (item.startsWith('fluid:')) return 'mB';
+  return amount === 1 ? 'item' : 'items';
 }
 
 export function recipeName(recipe: Recipe): string {
   if (recipe === COBBLESTONE) return 'Drill · optimized cobblestone generator';
+  if (recipe.farm) return itemName(recipe.id.split('/').at(-1)!) + ' · ' + recipe.farm.method;
   const name = itemName(recipe.id.slice(recipe.id.lastIndexOf('/') + 1));
   return MACHINES[recipe.machine].label + ' · ' + name;
 }
@@ -104,11 +112,12 @@ export function recipeName(recipe: Recipe): string {
 export class RecipeCatalog {
   readonly recipes: Recipe[];
   readonly sequences: Recipe[];
+  readonly farms = FARM_RECIPES;
   readonly items: string[];
   private readonly byOutput = new Map<string, Recipe[]>();
 
   constructor(recipes: Recipe[]) {
-    this.recipes = [COBBLESTONE, ...recipes];
+    this.recipes = [COBBLESTONE, ...FARM_RECIPES, ...recipes];
     this.sequences = recipes.filter(recipe => recipe.machine === 'sequence');
     const items = new Set<string>();
     for (const recipe of this.recipes) {
@@ -153,11 +162,11 @@ export function recipeWork(recipe: Recipe, settings: MachineSettings): MachineWo
       units: 1,
     }));
   }
-  if (recipe.machine === 'manual' || recipe.machine === 'polishing' || recipe.machine === 'stonecutter' || recipe.machine === 'sequence') {
+  if (recipe.machine === 'manual' || recipe.machine === 'polishing' || recipe.machine === 'stonecutter' || recipe.machine === 'sequence' || recipe.machine === 'farm') {
     return [];
   }
 
-  const batched = ['crushing', 'saw', 'splashing', 'haunting'].includes(recipe.machine);
+  const batched = ['crushing', 'saw', 'splashing', 'haunting', 'fan_blasting', 'fan_smoking'].includes(recipe.machine);
   // The global stack size cannot exceed the storage limit of the input. Common
   // Create processing inputs stack to 64. Lower the batch for other item types.
   const batch = batched ? settings.batch : 1;
@@ -171,7 +180,8 @@ function stepTicks(machine: TimedMachine, duration: number, settings: MachineSet
   const { rpm, beltRpm } = settings;
   switch (machine) {
     case 'drill': return optimizedDrillTicks(rpm, 2);
-    case 'press': return pressTicks(rpm);
+    case 'press':
+    case 'compacting': return pressTicks(rpm);
     case 'mixer': return mixerTicks(rpm, duration);
     case 'millstone': return millstoneTicks(rpm, duration);
     case 'crushing': return crushingTicks(rpm, duration, batch, 1);
@@ -181,6 +191,8 @@ function stepTicks(machine: TimedMachine, duration: number, settings: MachineSet
     case 'spout': return SPOUT_TICKS;
     case 'drain': return DRAIN_TICKS;
     case 'splashing':
+    case 'fan_blasting':
+    case 'fan_smoking':
     case 'haunting': return rpm > 0 ? fanBeltTicks(batch) : Infinity;
     case 'campfire': return (duration || 600) / 4;
     case 'furnace': return duration || 200;

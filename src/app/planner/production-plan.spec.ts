@@ -57,6 +57,60 @@ describe('Factory production plan', () => {
     expect(plan.external).toEqual([{ item: 'test:sheet', rate: 25 }]);
   });
 
+  it('prefers bulk fan processing and keeps explicit furnace or gravel-washing routes', () => {
+    const iron = 'minecraft:iron_ingot';
+    const nugget = 'minecraft:iron_nugget';
+    const gravel = 'minecraft:gravel';
+    const furnace: Recipe = {
+      id: 'minecraft:iron_ingot_from_blasting_raw_iron', machine: 'blasting',
+      inputs: [ingredient(1, 'minecraft:raw_iron')], outputs: [makeOutput(iron)],
+    };
+    const fan: Recipe = { ...furnace, id: 'create:fan_blasting/minecraft/iron_ingot_from_smelting_raw_iron', machine: 'fan_blasting' };
+    const compacting: Recipe = {
+      id: 'create:compacting/minecraft/iron_ingot_from_nuggets', machine: 'compacting',
+      inputs: [ingredient(9, nugget)], outputs: [makeOutput(iron)],
+    };
+    const washing: Recipe = {
+      id: 'create:splashing/gravel', machine: 'splashing',
+      inputs: [ingredient(1, gravel)], outputs: [makeOutput('minecraft:flint', 1, .25), makeOutput(nugget, 1, .125)],
+    };
+    const catalog = new RecipeCatalog([furnace, fan, compacting, washing]);
+    const configuration = settings();
+    configuration.goals = [{ item: iron, rate: 16 }];
+    expect(buildPlan(catalog, configuration).stages[0].recipe).toBe(fan);
+    configuration.recipes[iron] = furnace.id;
+    expect(buildPlan(catalog, configuration).stages[0].recipe).toBe(furnace);
+    configuration.recipes = { [iron]: compacting.id, [nugget]: washing.id };
+    const result = buildPlan(catalog, configuration);
+    expect(result.stages.map(stage => stage.recipe)).toEqual([washing, compacting]);
+    expect(result.stages[1].basins).toBe(result.stages[1].equipment[0].installed);
+    expect(result.external).toEqual([{ item: gravel, rate: 1152 }]);
+    expect(result.byproducts).toEqual([{ item: 'minecraft:flint', rate: 288 }]);
+  });
+
+  it('sizes crop plots from site yield and interval and reports shortage without charging machine stress', () => {
+    const catalog = new RecipeCatalog([]);
+    const configuration = settings();
+    const wheat = 'minecraft:wheat';
+    const wheatFarm = 'planner:farm/wheat';
+    configuration.goals = [{ item: wheat, rate: 4 }];
+    expect(buildPlan(catalog, configuration).external).toEqual([{ item: wheat, rate: 4 }]);
+
+    configuration.recipes[wheat] = wheatFarm;
+    configuration.farms = { [wheatFarm]: { minutes: 5, yield: 2, plots: 5 } };
+    const plan = buildPlan(catalog, configuration);
+    expect(plan.plots).toBe(5);
+    expect(plan.stages[0].crafts).toBe(2);
+    expect(plan.stages[0].farm?.needed).toBe(10);
+    expect(plan.capacity).toBe(.5);
+    expect(plan.stress).toBe(0);
+
+    const oak = 'minecraft:oak_log';
+    configuration.goals = [{ item: oak, rate: 10 }];
+    configuration.recipes[oak] = 'planner:farm/oak_tree';
+    expect(buildPlan(catalog, configuration).external).toEqual([{ item: 'minecraft:oak_sapling', rate: 2 }]);
+  });
+
   it('distinguishes serial operation from a dedicated assembly pipeline', () => {
     const rates = sequenceRates(mechanism, settings());
     expect(rates.success).toBe(.8);

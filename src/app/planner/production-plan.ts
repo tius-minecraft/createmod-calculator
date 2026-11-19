@@ -8,11 +8,18 @@ export interface Goal {
   rate: number;
 }
 
+export interface FarmSettings {
+  minutes?: number;
+  yield?: number;
+  plots?: number;
+}
+
 export interface PlannerSettings extends MachineSettings {
   goals: Goal[];
   recipes: Record<string, string>;
   ingredients: Record<string, string>;
   limits: Partial<Record<string, number>>;
+  farms?: Partial<Record<string, FarmSettings>>;
 }
 
 export interface MaterialRate {
@@ -35,6 +42,14 @@ export interface PlannedMachine {
   stress: number;
 }
 
+export interface PlannedFarm {
+  minutes: number;
+  yield: number;
+  needed: number;
+  installed: number;
+  ratePerPlot: number;
+}
+
 export interface PlanStage {
   item: string;
   recipe: Recipe;
@@ -44,6 +59,8 @@ export interface PlanStage {
   input: PlannedInput[];
   equipment: PlannedMachine[];
   support: number;
+  basins: number;
+  farm?: PlannedFarm;
   capacity: number;
 }
 
@@ -54,6 +71,7 @@ export interface Plan {
   cycles: string[];
   stress: number;
   blocks: number;
+  plots: number;
   capacity: number;
 }
 
@@ -73,15 +91,20 @@ const PREFERRED_INGREDIENTS = [
 ];
 
 export function selectRecipe(item: string, catalog: RecipeCatalog, settings: PlannerSettings): Recipe | undefined {
-  const recipes = catalog.producers(item);
   const selection = settings.recipes[item];
-  if (selection !== undefined) return recipes.find(recipe => recipe.id === selection);
+  if (selection === '') return undefined;
+  return catalog.producers(item).find(recipe => recipe.id === selection) ?? automaticRecipe(item, catalog, settings);
+}
+
+export function automaticRecipe(item: string, catalog: RecipeCatalog, settings: PlannerSettings): Recipe | undefined {
+  const recipes = catalog.producers(item);
 
   if (COMMON_EXTERNAL.has(item) || /:(?:raw_|stripped_)?[^:]*_(?:ore|log|stem)$|:raw_[^:]+$/.test(item)) {
     return undefined;
   }
 
   const primary = recipes.filter(recipe =>
+    !recipe.farm &&
     (recipe.outputs[0].item === item || recipe.machine === 'drain')
     && !recipe.inputs.some((input, index) => ingredientChoice(input, settings.ingredients[recipe.id + '/' + index]) === item)
   );
@@ -89,12 +112,16 @@ export function selectRecipe(item: string, catalog: RecipeCatalog, settings: Pla
 }
 
 function preference(recipe: Recipe, item: string): number {
-  if (recipe.id.startsWith('planner:')) return -100;
+  if (recipe.id === 'planner:optimized_cobblestone_generator') return -100;
+  if (/from_(nuggets|block|decompacting)|recycling/.test(recipe.id)) return 30;
+  if (recipe.machine === 'fan_blasting' || recipe.machine === 'fan_smoking') {
+    if (/from_(smelting_raw_|raw_ore)/.test(recipe.id)) return -14;
+    return /from_(blasting|smelting)$/.test(recipe.id) ? 15 : -3;
+  }
   if (recipe.id.includes('from_blasting_raw_')) return -10;
   if (recipe.id.includes('from_smelting_raw_')) return -9;
   if (recipe.id.includes('/raw_') && !recipe.id.endsWith('_block')) return -8;
   if (recipe.id.endsWith('_from_raw_ore')) return -7;
-  if (recipe.id.includes('from_nuggets') || recipe.id.includes('from_block') || recipe.id.includes('recycling')) return 30;
   if (recipe.machine === 'sequence') return -5;
   if (recipe.machine === 'deployer' && recipe.tools?.length) return 10;
   if (recipe.machine === 'manual' && recipe.id.startsWith('create:crafting/')) return 5;
@@ -164,7 +191,19 @@ export function buildPlan(catalog: RecipeCatalog, settings: PlannerSettings): Pl
   for (const item of order.reverse()) {
     const { recipe, input, depth } = nodes.get(item)!;
     const rate = demand.get(item) ?? 0;
-    const crafts = rate / expectedYield(recipe, item);
+    const configuredFarm = recipe.farm ? settings.farms?.[recipe.id] : undefined;
+    const target = recipe.outputs[0].item;
+    const harvestYield = configuredFarm?.yield ?? expectedYield(recipe, target);
+    const yieldPerCraft = item === target ? harvestYield : expectedYield(recipe, item);
+    const crafts = rate / yieldPerCraft;
+    const minutes = configuredFarm?.minutes ?? recipe.farm?.minutes;
+    const farm = minutes === undefined ? undefined : {
+      minutes,
+      yield: harvestYield,
+      needed: crafts * minutes,
+      installed: configuredFarm?.plots ?? Math.ceil(crafts * minutes - 1e-9),
+      ratePerPlot: yieldPerCraft / minutes,
+    };
     const connections = input.map(connection => {
       const quantity = crafts * connection.ingredient.amount;
       add(connection.external ? external : demand, connection.item, quantity);
@@ -172,7 +211,10 @@ export function buildPlan(catalog: RecipeCatalog, settings: PlannerSettings): Pl
     });
 
     for (const output of recipe.outputs) {
-      if (output.item !== item) add(byproducts, output.item, crafts * output.amount * output.chance);
+      if (output.item !== item) {
+        const amount = farm && output.item === target ? harvestYield : output.amount * output.chance;
+        add(byproducts, output.item, crafts * amount);
+      }
     }
 
     const machineWork = new Map<TimedMachine, { ticks: number; units: number }>();
@@ -190,9 +232,10 @@ export function buildPlan(catalog: RecipeCatalog, settings: PlannerSettings): Pl
         stress: installed * work.units * MACHINES[machine].stress * settings.rpm,
       };
     });
-    const capacity = Math.min(1, ...equipment.map(machine => machine.installed / machine.needed));
+    const capacity = Math.min(1, farm ? farm.installed / farm.needed : 1, ...equipment.map(machine => machine.installed / machine.needed));
     const support = recipe.heat ? equipment.find(machine => machine.machine === 'mixer')?.installed ?? 0 : 0;
-    stages.push({ item, recipe, depth, rate, crafts, input: connections, equipment, capacity, support });
+    const basins = equipment.find(machine => machine.machine === 'compacting')?.installed ?? 0;
+    stages.push({ item, recipe, depth, rate, crafts, input: connections, equipment, capacity, support, basins, farm });
   }
 
   return {
@@ -202,7 +245,8 @@ export function buildPlan(catalog: RecipeCatalog, settings: PlannerSettings): Pl
     cycles: [...cycles],
     stress: stages.reduce((total, section) => total + section.equipment.reduce((sum, machine) => sum + machine.stress, 0), 0),
     blocks: stages.reduce((total, section) =>
-      total + section.support + section.equipment.reduce((sum, machine) => sum + machine.blocks * (machine.machine === 'crushing' ? 2 : 1), 0), 0),
+      total + section.support + section.basins + section.equipment.reduce((sum, machine) => sum + machine.blocks * (machine.machine === 'crushing' ? 2 : 1), 0), 0),
+    plots: stages.reduce((total, stage) => total + (stage.farm?.installed ?? 0), 0),
     capacity: Math.min(1, ...stages.map(section => section.capacity)),
   };
 }

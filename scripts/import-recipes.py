@@ -9,7 +9,7 @@ from zipfile import ZipFile
 
 
 MACHINES = {
-    "compacting": "press", "pressing": "press", "crushing": "crushing",
+    "compacting": "compacting", "pressing": "press", "crushing": "crushing",
     "cutting": "saw", "deploying": "deployer", "emptying": "drain", "filling": "spout",
     "haunting": "haunting", "splashing": "splashing", "milling": "millstone",
     "mixing": "mixer", "sandpaper_polishing": "polishing", "item_application": "manual",
@@ -158,6 +158,57 @@ def normalize(recipe_id, data):
     return recipe
 
 
+
+def automation_variants(recipes, press_candidates):
+    """Match the fan and Basin Press recipe selection in Create 6.0.10."""
+    cooking = defaultdict(dict)
+    for recipe in recipes.values():
+        machine = recipe["machine"]
+        if machine not in ("furnace", "blasting", "smoking") or recipe["id"].endswith("_manual_only"):
+            continue
+        for item in recipe["inputs"][0]["choices"]:
+            if not item.startswith("#"):
+                cooking[item].setdefault(machine, recipe)
+
+    grouped = defaultdict(list)
+    for item, variants in cooking.items():
+        smelting = variants.get("furnace") or variants.get("blasting")
+        smoking = variants.get("smoking")
+        if smoking:
+            grouped[("fan_smoking", smoking["id"])].append(item)
+        if smelting and (not smoking or smoking["outputs"][0]["item"] != smelting["outputs"][0]["item"]):
+            grouped[("fan_blasting", smelting["id"])].append(item)
+
+    for (machine, source_id), choices in sorted(grouped.items()):
+        namespace, path = source_id.split(":", 1)
+        yield {
+            "id": f"create:{machine}/{namespace}/{path}",
+            "machine": machine,
+            "inputs": [{"choices": sorted(choices), "amount": 1}],
+            "outputs": recipes[source_id]["outputs"],
+        }
+
+    crushing_inputs = {
+        item for recipe in recipes.values() if recipe["machine"] == "crushing"
+        for item in recipe["inputs"][0]["choices"]
+    }
+    for recipe in recipes.values():
+        if recipe["machine"] != "millstone":
+            continue
+        choices = sorted(set(recipe["inputs"][0]["choices"]) - crushing_inputs)
+        if choices:
+            path = recipe["id"].split("/", 1)[1]
+            yield {**recipe, "id": f"create:crushing/fallback/{path}", "machine": "crushing",
+                   "inputs": [{**recipe["inputs"][0], "choices": choices}]}
+
+    for source_id in press_candidates:
+        recipe = recipes[source_id]
+        ingredients = recipe["inputs"]
+        if len(ingredients) == 1 and ingredients[0]["amount"] in (4, 9):
+            namespace, path = source_id.split(":", 1)
+            yield {**recipe, "id": f"create:compacting/{namespace}/{path}", "machine": "compacting"}
+
+
 def load_create(root):
     for source_set in ("main", "generated"):
         root_data = root / "src" / source_set / "resources" / "data"
@@ -180,6 +231,7 @@ def main():
     parser.add_argument("minecraft_data_jar", type=Path)
     args = parser.parse_args()
     recipes = {}
+    press_candidates = []
     tags = defaultdict(set)
 
     for logical, data in chain(load_vanilla(args.minecraft_data_jar), load_create(args.create_checkout)):
@@ -190,6 +242,10 @@ def main():
             recipe = normalize(f"{namespace}:{remainder}", data)
             if recipe:
                 recipes[recipe["id"]] = recipe
+                if (data["type"] in ("minecraft:crafting_shaped", "minecraft:crafting_shapeless")
+                        and not recipe["id"].endswith("_manual_only")
+                        and all(" " not in row for row in data.get("pattern", []))):
+                    press_candidates.append(recipe["id"])
         elif remainder.startswith(("item/", "fluid/")):
             category, tag = remainder.split("/", 1)
             prefix = "fluid:" if category == "fluid" else ""
@@ -265,6 +321,9 @@ def main():
         for group in recipe["inputs"] + recipe.get("tools", []):
             expand(group)
 
+    for variant in automation_variants(dict(recipes), press_candidates):
+        recipes[variant["id"]] = variant
+
     output = Path("src/assets/data/create-6.0.10.json")
     output.write_text(
         "[\n" + ",\n".join(json.dumps(recipe, separators=(",", ":")) for recipe in recipes.values()) + "\n]\n"
@@ -274,7 +333,7 @@ def main():
         prefix = f"create:{kind}/"
         entries = sorted(
             (recipe_id.removeprefix(prefix).replace("_", " ").replace("/", " / "), recipe.get("ticks", 0))
-            for recipe_id, recipe in recipes.items() if recipe_id.startswith(prefix)
+            for recipe_id, recipe in recipes.items() if recipe_id.startswith(prefix) and "/fallback/" not in recipe_id
         )
         durations[kind] = entries
     duration_source = Path("src/app/create/recipe-durations.ts")

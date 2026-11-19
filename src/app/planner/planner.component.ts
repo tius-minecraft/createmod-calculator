@@ -3,22 +3,35 @@ import { DecimalPipe, PercentPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DEFAULT_MAX_RPM, GENERATORS } from '../create/kinetics';
-import { itemName, loadCatalog, MACHINES, materialUnit, RecipeCatalog, recipeName } from '../create/recipes';
+import { itemName, loadCatalog, MACHINES, materialUnit, type Recipe, RecipeCatalog, recipeName } from '../create/recipes';
 import { MACHINE_ICONS, iconPath } from '../create/tool-icons';
 import { generatorRoute, type GeneratorId } from '../create/calculator-tabs';
-import { buildPlan, Plan, PlanStage, PlannerSettings, Goal, selectRecipe } from './production-plan';
+import { automaticRecipe, buildPlan, type FarmSettings, Plan, PlanStage, PlannerSettings, Goal } from './production-plan';
+import { ItemIconComponent, loadItemAtlas, type ItemAtlas } from './item-icon.component';
 
 const STORAGE_KEY = 'create-6.0.10.factory';
-const EXAMPLES = [
+interface PlanExample extends Goal {
+  title?: string;
+  recipes?: Record<string, string>;
+}
+
+const EXAMPLES: PlanExample[] = [
   { item: 'create:precision_mechanism', rate: 60 },
   { item: 'create:brass_ingot', rate: 120 },
   { item: 'create:sturdy_sheet', rate: 60 },
   { item: 'create:track', rate: 120 },
+  { item: 'minecraft:iron_ingot', rate: 16, title: 'Iron from gravel', recipes: {
+    'minecraft:iron_ingot': 'create:compacting/minecraft/iron_ingot_from_nuggets',
+    'minecraft:iron_nugget': 'create:splashing/gravel',
+    'minecraft:gravel': 'create:crushing/fallback/cobblestone',
+  }},
+  { item: 'minecraft:wheat', rate: 2, title: 'Wheat farm', recipes: { 'minecraft:wheat': 'planner:farm/wheat' } },
+  { item: 'minecraft:oak_log', rate: 8, title: 'Oak farm', recipes: { 'minecraft:oak_log': 'planner:farm/oak_tree' } },
 ];
 
 @Component({
   standalone: true,
-  imports: [FormsModule, DecimalPipe, PercentPipe, RouterLink],
+  imports: [FormsModule, DecimalPipe, PercentPipe, RouterLink, ItemIconComponent],
   templateUrl: './planner.component.html',
 })
 export class PlannerComponent implements OnInit {
@@ -33,6 +46,7 @@ export class PlannerComponent implements OnInit {
   readonly generatorTypes = GENERATORS;
   settings = this.restore();
   catalog?: RecipeCatalog;
+  atlas?: ItemAtlas;
   plan?: Plan;
   error = '';
   search = '';
@@ -45,6 +59,7 @@ export class PlannerComponent implements OnInit {
 
   ngOnInit() {
     this.load();
+    void loadItemAtlas().then(atlas => this.atlas = atlas).catch(() => undefined);
   }
 
   async load() {
@@ -82,11 +97,13 @@ export class PlannerComponent implements OnInit {
     const totals = new Map<string, number>();
     for (const stage of this.plan?.stages ?? []) {
       for (const machine of stage.equipment) {
-        const label = machine.machine === 'crushing' ? 'Crushing Wheel' : this.machines[machine.machine].label;
+        const label = machine.machine === 'crushing' ? 'Crushing Wheel'
+          : machine.machine === 'compacting' ? this.machines.press.label : this.machines[machine.machine].label;
         const blocks = machine.blocks * (machine.machine === 'crushing' ? 2 : 1);
         if (blocks) totals.set(label, (totals.get(label) ?? 0) + blocks);
       }
       if (stage.support) totals.set('Blaze Burner', (totals.get('Blaze Burner') ?? 0) + stage.support);
+      if (stage.basins) totals.set('Basin', (totals.get('Basin') ?? 0) + stage.basins);
     }
     return [...totals].sort(([a], [b]) => a.localeCompare(b));
   }
@@ -113,8 +130,17 @@ export class PlannerComponent implements OnInit {
     this.update();
   }
 
-  useExample(goal: Goal) {
-    this.settings.goals = [{ ...goal }];
+  addFarm(id: string) {
+    const recipe = this.catalog?.farms.find(farm => farm.id === id);
+    if (!recipe) return;
+    const item = recipe.outputs[0].item;
+    this.settings.recipes[item] = recipe.id;
+    this.addGoal(item, 2);
+  }
+
+  useExample(example: PlanExample) {
+    this.settings.goals = [{ item: example.item, rate: example.rate }];
+    Object.assign(this.settings.recipes, example.recipes);
     this.selectedStage = '';
     this.update();
   }
@@ -151,13 +177,42 @@ export class PlannerComponent implements OnInit {
     this.update();
   }
 
-  recipeSelection(item: string) {
-    if (!this.catalog) return '';
-    return selectRecipe(item, this.catalog, this.settings)?.id ?? '';
+  get recipeChoice() {
+    const saved = this.settings.recipes[this.selectedStage];
+    return saved === '' || this.catalog?.producers(this.selectedStage).some(recipe => recipe.id === saved)
+      ? saved : 'auto';
   }
 
-  alternatives(item: string) {
-    return this.catalog?.producers(item) ?? [];
+  get defaultRecipeLabel() {
+    const recipe = this.catalog && automaticRecipe(this.selectedStage, this.catalog, this.settings);
+    return recipe ? recipeName(recipe) : 'External supply';
+  }
+
+  hasRecipes(item: string) {
+    return (this.catalog?.producers(item).length ?? 0) > 0;
+  }
+
+  get recipeGroups() {
+    const groups = new Map<string, Recipe[]>();
+    for (const recipe of this.catalog?.producers(this.selectedStage) ?? []) {
+      const group = MACHINES[recipe.machine].label;
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group)!.push(recipe);
+    }
+    return [...groups].sort(([a], [b]) => a.localeCompare(b));
+  }
+
+  setFarmSetting(recipeId: string, key: keyof FarmSettings, value: number | null) {
+    const farms = this.settings.farms ??= {};
+    const configuration = farms[recipeId] ??= {};
+    if (value === null) {
+      delete configuration[key];
+    } else if (key === 'plots') {
+      configuration.plots = Math.trunc(this.bounded(value, 0, 1_000_000));
+    } else {
+      configuration[key] = this.bounded(value, .001, key === 'minutes' ? 1440 : 1000);
+    }
+    this.update();
   }
 
   exportCsv() {
@@ -169,6 +224,11 @@ export class PlannerComponent implements OnInit {
       for (const input of section.input) {
         rows.push(['Ingredient', input.item, this.unit(input.item), String(input.rate), section.recipe.id, '', '']);
       }
+      if (section.farm) {
+        rows.push(['Farm plots', material, this.unit(material), String(section.farm.installed * section.farm.ratePerPlot),
+          section.recipe.farm!.method, String(section.farm.installed), '']);
+      }
+      if (section.basins) rows.push(['Equipment', material, '', '', 'Basin', String(section.basins), '']);
       for (const machine of section.equipment) {
         rows.push(['Equipment', material, '', '', this.machines[machine.machine].label,
           String(machine.installed), String(machine.stress)]);

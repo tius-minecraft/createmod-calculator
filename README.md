@@ -17,12 +17,14 @@ The production build is in `dist/createmod-calculator/browser`. Serve `index.htm
 
 1. Add one or more products and set the desired output per minute. Fluids use mB/min.
 2. Configure machine RPM, belt RPM and the input stack size for batch machines.
-3. Select any material in the flow to choose an alternate recipe, keep it as an external supply, pick a tagged ingredient, or set the installed machine count.
+3. Choose the recipe directly from any stage card. The selector groups alternatives by machine. You can also set an external supply, pick a tagged ingredient, or set the installed machine count.
 4. Check supplies, byproducts, stress, and the stages that limit target capacity. Download the plan as CSV. The browser saves the plan configuration locally.
 
 The planner works with expected yields for random outputs. It aggregates common recipe inputs and sizes parallel equipment from the required operations per minute. It reports byproducts separately so they can be reused in the build. Each flow card shows the incoming materials and rates. The operation count for manual crafting is listed without a machine estimate. A cyclic recipe edge is treated as an external input.
 
-The recipe catalog covers base Create and regular Minecraft crafting, cooking, and stonecutting recipes. Mod-dependent recipes and special recipes that cannot be expressed as fixed ingredients and yields are excluded. The catalog includes recipe facts and identifiers. It contains no game artwork.
+The recipe catalog covers base Create and regular Minecraft crafting, cooking, and stonecutting recipes. The planner prefers the Encased Fan when Create supports bulk blasting or smoking. Mechanical Press with Basin is available for compacting regular stacks such as nine iron nuggets. Iron from gravel demonstrates a route with gravel washing and pressing, including the 12.5% nugget drop. Mod-dependent recipes and special recipes that cannot be expressed as fixed ingredients and yields are excluded. The catalog includes recipe facts and identifiers. It contains no game artwork.
+
+Use **Add plant farm** or select a farm recipe on a material card. Farms include field crops, Nether Wart, cane, kelp, bamboo, melons, pumpkins and eight trees. Outputs are estimates per mature harvest after replanting reserves for crops. Tree plans include planting items for the Deployer. Adjust the interval, yield and installed plots based on your farm. The plan sizes plots by output rate and leaves the moving contraption's blocks and stress to the build layout. [Mechanical Harvester](https://github.com/Creators-of-Create/Create/wiki/Mechanical-Harvester) · [Mechanical Saw](https://github.com/Creators-of-Create/Create/wiki/Mechanical-Saw).
 
 The Generators group has a separate calculator for each power source. The planner's generator link opens the calculator for its selected source.
 
@@ -56,3 +58,5 @@ The app retains its [GPL-3.0 license](LICENSE). Create recipe data is derived fr
 Create illustrations for the new controls come from the Create Wiki on MC-WIKI.net. [Packager](https://mc-wiki.net/create/packager/), [Spout](https://mc-wiki.net/create/spout/), [Precision Mechanism](https://mc-wiki.net/create/precision-mechanism/), [Brass Funnel](https://mc-wiki.net/create/brass-funnel/), [Andesite Funnel](https://mc-wiki.net/create/andesite-funnel/), [Item Drain](https://mc-wiki.net/create/item-drain/), [Windmill Bearing](https://mc-wiki.net/create/windmill-bearing/), [Steam Engine](https://mc-wiki.net/create/steam-engine/), [Hand Crank](https://mc-wiki.net/create/hand-crank/), and [Creative Motor](https://mc-wiki.net/create/creative-motor/).
 
 Generator tab images for [Water Wheel](https://mineuniverse.net/wiki/create/water-wheel), [Large Water Wheel](https://mineuniverse.net/wiki/create/large-water-wheel), and [Copper Valve Handle](https://mineuniverse.net/wiki/create/copper-valve-handle) come from the MineUniverse Create Wiki.
+
+The material atlas packs existing item sprites and block textures from the [Minecraft 1.21.1 client](https://piston-meta.mojang.com/mc/game/version_manifest_v2.json) and [Create 6.0.10](https://github.com/Creators-of-Create/Create/tree/mc1.21.1-6.0.10). To refresh it with Pillow installed, run `python3 scripts/import-item-icons.py /path/to/Create minecraft-client.jar`.
