@@ -26,7 +26,7 @@
             <p>{{ recipe.farm?.method ?? 'Mechanical Drill · block generator' }}</p>
           </div>
         </div>
-        <app-ponder-scene [recipe]="recipe" [atlas]="atlas" />
+        <app-ponder-scene [recipe]="recipe" />
         @if (recipe.generator; as generator) {
           <p>{{ generator.formation }} {{ collection(generator) }}</p>
         } @else {

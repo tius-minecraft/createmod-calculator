@@ -1,15 +1,34 @@
-import { AfterViewInit, Component, ElementRef, inject, Input, NgZone, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
-import type { ItemAtlas } from '../planner/item-icon.component';
+import { Component, Input, OnChanges } from '@angular/core';
 import { itemName, type Recipe } from './recipes';
-import { generatorCollection } from './resource-sources';
-import { PonderScene, SCENE_HEIGHT, SCENE_WIDTH } from './ponder-scene';
+import { resourceSourceId } from './resource-sources';
 
-const STEP_MS = 3300;
-
-interface SceneStep {
+interface PonderClip {
+  id: string;
   title: string;
-  text: string;
+  description: string;
 }
+
+const WHEAT: PonderClip = {
+  id: 'wheat',
+  title: 'Mechanical Harvester',
+  description: 'The original Ponder scene shows a rotating contraption harvesting and replanting wheat.',
+};
+const SAW: PonderClip = {
+  id: 'trees',
+  title: 'Sawing trees',
+  description: 'The original Ponder scene shows the Mechanical Saw cutting trees from the base.',
+};
+const DEPLOYER: PonderClip = {
+  id: 'replant',
+  title: 'Deployer placement',
+  description: 'This original Ponder scene demonstrates placement on a contraption using flowers. Use the same Deployer action with saplings for this farm.',
+};
+const DRILL: PonderClip = {
+  id: 'drill',
+  title: 'Mechanical Drill',
+  description: 'The original Ponder scene demonstrates how the drill breaks the block in front of it, using planks as the example.',
+};
+const RECORDED_CROPS = new Set(['potato', 'carrot', 'beetroot', 'nether_wart', 'sweet_berries']);
 
 @Component({
   selector: 'app-ponder-scene',
@@ -17,110 +36,38 @@ interface SceneStep {
   templateUrl: './ponder-scene.component.html',
   styleUrl: './ponder-scene.component.css',
 })
-export class PonderSceneComponent implements AfterViewInit, OnChanges, OnDestroy {
+export class PonderSceneComponent implements OnChanges {
   @Input({ required: true }) recipe!: Recipe;
-  @Input() atlas?: ItemAtlas;
-  @ViewChild('canvas', { static: true }) canvas!: ElementRef<HTMLCanvasElement>;
 
-  readonly width = SCENE_WIDTH;
-  readonly height = SCENE_HEIGHT;
-  steps: SceneStep[] = [];
-  step = 0;
-  playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  readonly mediaPath = 'assets/ponder/';
+  clips: PonderClip[] = [];
+  active = 0;
 
-  private readonly zone = inject(NgZone);
-  private renderer?: PonderScene;
-  private texture?: HTMLImageElement;
-  private frame?: number;
-  private elapsed = 0;
-  private lastTime?: number;
-
-  ngAfterViewInit() {
-    const context = this.canvas.nativeElement.getContext('2d');
-    if (!context) return;
-    const texture = this.texture = new Image();
-    texture.onload = () => {
-      this.renderer = new PonderScene(context, texture);
-      this.draw();
-      this.animate();
-    };
-    texture.src = new URL('assets/data/item-icons.png', document.baseURI).href;
-  }
-
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes['recipe']) {
-      this.steps = this.describe(this.recipe);
-      this.step = 0;
-      this.elapsed = 0;
+  ngOnChanges() {
+    this.active = 0;
+    const id = resourceSourceId(this.recipe);
+    const name = itemName(this.recipe.outputs[0].item);
+    const farm = this.recipe.farm;
+    if (this.recipe.generator) {
+      this.clips = [{
+        id,
+        title: name + ' generator',
+        description: 'A custom scene recorded in Create Ponder showing block formation and direct collection.',
+      }];
+    } else if (RECORDED_CROPS.has(id)) {
+      this.clips = [{
+        id,
+        title: 'Harvesting ' + name,
+        description: 'This scene uses the Create Harvester schematic to show the crop at maturity and after harvest.',
+      }];
+    } else if (farm?.scene === 'tree') {
+      this.clips = [SAW, DEPLOYER];
+    } else if (farm?.equipment[0] === 'create:mechanical_saw') {
+      this.clips = [SAW];
+    } else if (farm?.equipment[0] === 'create:mechanical_drill') {
+      this.clips = [DRILL];
+    } else {
+      this.clips = [WHEAT];
     }
-    this.draw();
-  }
-
-  ngOnDestroy() {
-    this.stop();
-    if (this.texture) this.texture.onload = null;
-  }
-
-  togglePlayback() {
-    this.playing = !this.playing;
-    if (this.playing) this.animate();
-    else this.stop();
-  }
-
-  show(index: number) {
-    this.playing = false;
-    this.stop();
-    this.step = index;
-    this.elapsed = STEP_MS * .68;
-    this.draw();
-  }
-
-  private describe(recipe: Recipe): SceneStep[] {
-    const product = itemName(recipe.outputs[0].item);
-    if (recipe.generator) {
-      return [
-        { title: 'Set up the contact', text: recipe.generator.formation },
-        { title: 'Form ' + product, text: 'Let the block form directly against the face of the drill. Keep the input fluids in place.' },
-        { title: 'Collect the drops', text: generatorCollection(recipe.generator) },
-      ];
-    }
-    const farm = recipe.farm!;
-    const substrate = itemName(farm.soil);
-    return [
-      { title: 'Prepare the growing surface',
-        text: farm.scene === 'cocoa' ? 'Plant Cocoa Beans on the side of a Jungle Log.'
-          : 'Plant ' + itemName(farm.planting) + ' on ' + substrate + (product === 'Kelp' ? ' underwater.' : '.') },
-      { title: 'Let the crop grow', text: farm.scene === 'tree' ? 'Leave room for the trunk and canopy to grow.' :
-        farm.scene === 'column' ? 'Keep the base in place, then harvest the block that grows above it.' :
-          'Wait for the plant to mature before harvesting.' },
-      { title: 'Harvest and collect', text: farm.setup },
-    ];
-  }
-
-  private animate() {
-    if (!this.playing || !this.renderer || this.frame !== undefined) return;
-    this.zone.runOutsideAngular(() => { this.frame = requestAnimationFrame(this.tick); });
-  }
-
-  private readonly tick = (time: number) => {
-    this.frame = undefined;
-    this.elapsed += this.lastTime === undefined ? 0 : Math.min(100, time - this.lastTime);
-    this.lastTime = time;
-    if (this.elapsed >= STEP_MS) {
-      this.elapsed = 0;
-      this.zone.run(() => { this.step = (this.step + 1) % this.steps.length; });
-    }
-    this.draw();
-    this.animate();
-  };
-
-  private draw() {
-    if (this.atlas) this.renderer?.render(this.recipe, this.atlas, this.step, this.elapsed / STEP_MS);
-  }
-
-  private stop() {
-    if (this.frame !== undefined) cancelAnimationFrame(this.frame);
-    this.frame = undefined;
-    this.lastTime = undefined;
   }
 }

@@ -26,7 +26,7 @@ The recipe catalog covers base Create and regular Minecraft crafting, cooking, a
 
 ## Farms and block generators
 
-Open **Farms** to browse crops, trees and the four block generators. Each source has an isometric animated build guide, equipment icons and production rates. Use the step buttons to pause and inspect individual steps.
+Open **Farms** to browse crops, trees and the four block generators. Each source has equipment icons, production rates and an in-game Ponder recording with playback and seeking. The caption identifies the crop or example in the recording.
 
 The planner automatically adds these sources for their main products when a target or recipe needs them. Use the stage recipe selector to choose an external supply or another producer. Farm output estimates are per mature harvest after replanting reserves. Tree plans include planting items for the Deployer. Set your farm's interval, yield and installed plots in **Farms**. The planner uses those values and leaves farm contraption blocks and power to the build layout. [Mechanical Harvester](https://github.com/Creators-of-Create/Create/wiki/Mechanical-Harvester) · [Mechanical Saw](https://github.com/Creators-of-Create/Create/wiki/Mechanical-Saw).
 
@@ -58,6 +58,10 @@ python3 scripts/import-recipes.py /path/to/Create minecraft-data.jar
 ```
 
 The app retains its [GPL-3.0 license](LICENSE). Create recipe data is derived from the [Create source catalog](https://github.com/Creators-of-Create/Create/tree/mc1.21.1-6.0.10/src/generated/resources/data/create/recipe), with the [Create MIT notice](LICENSE.create).
+
+### Ponder recordings
+
+The recordings were rendered in Minecraft 1.21.1 with Create 6.0.10 and Ponder 1.0.82 on NeoForge. Wheat, tree cutting, Deployer placement and drilling use the mod's existing storyboards. The other recorded crop scenes adapt the Harvester schematic to their own crops. The four block generator scenes use the same Ponder API with dedicated layouts. The website plays local MP4 files with still frames as previews. The capture mod and FFmpeg commands are in `scripts/ponder`. Use `python3 scripts/ponder/capture.py build --help` with the mapped NeoForge client and Create JAR. Start that client with the capture mod in a local world on a private 1280 × 800 X11 display. The `record` subcommand writes videos and preview frames into `src/assets/ponder`. [Create storyboards](https://github.com/Creators-of-Create/Create/tree/mc1.21.1-6.0.10/src/main/java/com/simibubi/create/infrastructure/ponder/scenes) · [Ponder source](https://github.com/Creators-of-Create/Ponder).
 
 ### Interface imagery
 
